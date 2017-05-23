@@ -6,7 +6,8 @@ import net.chakmeshma.brutengine.development.exceptions.InvalidAdaptionOperation
 import net.chakmeshma.brutengine.development.exceptions.InvalidMappingOperationException;
 import net.chakmeshma.brutengine.development.exceptions.InvalidOperationException;
 import net.chakmeshma.brutengine.development.exceptions.RenderException;
-import net.chakmeshma.brutengine.system.StateControllable;
+import net.chakmeshma.brutengine.mathematics.Camera;
+import net.chakmeshma.brutengine.mathematics.Transform;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -21,22 +22,8 @@ import static net.chakmeshma.brutengine.utilities.GLUtilities.GLAdaptionRule.GL_
 import static net.chakmeshma.brutengine.utilities.GLUtilities.getGLTypeIdentifier;
 
 
-public interface Drawable {
+public interface Renderable {
     void render() throws RenderException, InitializationException;
-
-    void setMesh(Mesh mesh) throws InitializationException;
-
-    void setMeshes(Mesh[] meshes) throws InitializationException;
-
-    void setStateController(StateControllable stateController) throws InitializationException;
-
-    void setProgram(Program program) throws InitializationException;
-
-    void setPrograms(Program[] programs) throws InitializationException;
-
-    void setAttributeBufferMapping(AttributeBufferMapping attributeBufferMapping) throws InitializationException;
-
-    void setAttributeBufferMappings(AttributeBufferMapping[] attributeBufferMappings) throws InitializationException;
 
     //region inner classes
     class AttributeBufferMapping {
@@ -118,51 +105,34 @@ public interface Drawable {
         }
     }
 
-    class SimpleDrawable implements Drawable {
+    class SimpleRenderable implements Renderable {
         private boolean _meshSet = false;
-        private boolean _stateControllerSet = false;
         private boolean _programSet = false;
-        private boolean _attributeBufferMappingSet = false;
-        private boolean _linked = false;
+        private boolean _transformSet = false;
+        private boolean _cameraSet = false;
         private AttributeBufferMapping attributeBufferMapping;
         private Mesh mesh;
         private Program program;
-        private StateControllable stateController;
+        private Transform transform;
+        private Camera camera;
 
-        public SimpleDrawable(Program program, Mesh mesh, StateControllable stateController, AttributeBufferMapping attributeBufferMapping) throws InitializationException {
+        public SimpleRenderable(Program program,
+                                Mesh mesh,
+                                Transform transform,
+                                Camera camera) throws InitializationException {
             setProgram(program);
             setMesh(mesh);
-            setStateController(stateController);
-            setAttributeBufferMapping(attributeBufferMapping);
-            link();
+            setTransform(transform);
+            setCamera(camera);
         }
 
         private boolean isSet() {
-            return _meshSet && _programSet && _stateControllerSet && _attributeBufferMappingSet;
-        }
-
-        private void link() throws InitializationException {
-            stateController.unbindAttachments();
-
-            for (Program.Uniform uniform : program.getUniforms())
-                try {
-                    stateController.attachStateVariable(uniform);
-                } catch (InvalidOperationException e) {
-                    throw new InitializationException(e.getMessage());
-                }
-
-            stateController.bindAttachments();
-            stateController.envalueBindings();
-
-            setLinked();
+            return _meshSet && _programSet && _transformSet && _cameraSet;
         }
 
         public void render() throws RenderException, InitializationException {
             if (!isSet())
-                throw new RenderException("not drawable (probably not fully initialized)");
-
-            if (!isLinked())
-                link();
+                throw new RenderException("Renderable not set!");
 
             program.bind();
 
@@ -199,9 +169,35 @@ public interface Drawable {
                     DebugUtilities.logWarning(String.format("unused/[unbound to buffer] attribute \"%s\" defined in shader(s)", attributeReference.getName()));
             }
 
-            for (Program.Uniform uniform : program.getUniforms()) {
-                if (uniform.hasChanged()) {
-                    uniform.commitChange();
+            for (Program.UniformReference uniformReference : program.getDefinedUniforms(Program.DefinedUniformType.MODEL_MATRIX_UNIFORM)) {
+                try {
+                    uniformReference.setFloatValues(transform.getModelMatrix());
+                } catch (InvalidOperationException e) {
+                    throw new RenderException(e.getMessage());
+                }
+            }
+
+            for (Program.UniformReference uniformReference : program.getDefinedUniforms(Program.DefinedUniformType.VIEW_MATRIX_UNIFORM)) {
+                try {
+                    uniformReference.setFloatValues(camera.getViewMatrix());
+                } catch (InvalidOperationException e) {
+                    throw new RenderException(e.getMessage());
+                }
+            }
+
+            for (Program.UniformReference uniformReference : program.getDefinedUniforms(Program.DefinedUniformType.PROJECTION_MATRIX_UNIFORM)) {
+                try {
+                    uniformReference.setFloatValues(camera.getProjectionMatrix());
+                } catch (InvalidOperationException e) {
+                    throw new RenderException(e.getMessage());
+                }
+            }
+
+            for (Program.UniformReference uniformReference : program.getDefinedUniforms(Program.DefinedUniformType.ROTATION_MATRIX_UNIFORM)) {
+                try {
+                    uniformReference.setFloatValues(getRotationMatrix());
+                } catch (InvalidOperationException e) {
+                    throw new RenderException(e.getMessage());
                 }
             }
 
@@ -239,60 +235,38 @@ public interface Drawable {
 
         }
 
-        public void setMesh(Mesh mesh) throws InitializationException {
+        void setMesh(Mesh mesh) throws InitializationException {
             this.mesh = mesh;
 
-            _meshSet = true;
-
-            clearLinked();
+            this._meshSet = true;
         }
 
-        public void setMeshes(Mesh[] meshes) throws InitializationException {
+        void setMeshes(Mesh[] meshes) throws InitializationException {
             setMesh(meshes[0]);
         }
 
-        public void setStateController(StateControllable stateController) throws InitializationException {
-            this.stateController = stateController;
-
-            _stateControllerSet = true;
-
-            clearLinked();
-        }
-
-        public void setProgram(Program program) throws InitializationException {
+        void setProgram(Program program) throws InitializationException {
             this.program = program;
 
-            _programSet = true;
+            this.attributeBufferMapping = program.getAttributeBufferMapping();
 
-            clearLinked();
+            this._programSet = true;
         }
 
-        public void setPrograms(Program[] programs) throws InitializationException {
+        void setPrograms(Program[] programs) throws InitializationException {
             setProgram(programs[0]);
         }
 
-        public void setAttributeBufferMapping(AttributeBufferMapping attributeBufferMapping) {
-            this.attributeBufferMapping = attributeBufferMapping;
+        void setTransform(Transform transform) {
+            this.transform = transform;
 
-            _attributeBufferMappingSet = true;
-
-            clearLinked();
+            this._transformSet = true;
         }
 
-        public void setAttributeBufferMappings(AttributeBufferMapping[] attributeBufferMappings) {
-            setAttributeBufferMapping(attributeBufferMappings[0]);
-        }
+        void setCamera(Camera camera) {
+            this.camera = camera;
 
-        private boolean isLinked() {
-            return _linked;
-        }
-
-        private void setLinked() {
-            this._linked = true;
-        }
-
-        private void clearLinked() {
-            this._linked = false;
+            this._cameraSet = true;
         }
     }
     //endregion

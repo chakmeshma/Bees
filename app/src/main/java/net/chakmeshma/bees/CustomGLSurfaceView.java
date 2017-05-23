@@ -57,7 +57,7 @@ class CustomGLSurfaceView extends GLSurfaceView {
                 float scaleFactor = detector.getScaleFactor() - 1;
                 scaleFactor *= 10.0f;
 
-                renderer.getViewable().zoomCamera(scaleFactor);
+                renderer.getCamera().zoomCamera(scaleFactor);
 
                 return true;
             }
@@ -88,7 +88,7 @@ class CustomGLSurfaceView extends GLSurfaceView {
                 switch (event.getPointerCount()) {
                     case 1:
                         try {
-                            renderer.getViewable().rotateCamera(dx, dy);
+                            renderer.getCamera().rotateCamera(dx, dy);
                         } catch (InvalidOperationException e) {
                             e.printStackTrace();
                         }

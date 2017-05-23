@@ -5,12 +5,14 @@ import android.content.Context;
 import net.chakmeshma.brutengine.development.exceptions.GLCustomException;
 import net.chakmeshma.brutengine.development.exceptions.GLCustomShaderException;
 import net.chakmeshma.brutengine.development.exceptions.InitializationException;
-import net.chakmeshma.brutengine.system.StateVariable;
+import net.chakmeshma.brutengine.development.exceptions.InvalidOperationException;
 import net.chakmeshma.brutengine.utilities.AssetFileReader;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -38,9 +40,18 @@ import static android.opengl.GLES20.glGetShaderiv;
 import static android.opengl.GLES20.glGetUniformLocation;
 import static android.opengl.GLES20.glLinkProgram;
 import static android.opengl.GLES20.glShaderSource;
+import static android.opengl.GLES20.glUniform1f;
+import static android.opengl.GLES20.glUniform1i;
+import static android.opengl.GLES20.glUniform2fv;
+import static android.opengl.GLES20.glUniform2iv;
+import static android.opengl.GLES20.glUniform3fv;
+import static android.opengl.GLES20.glUniform3iv;
+import static android.opengl.GLES20.glUniform4fv;
+import static android.opengl.GLES20.glUniform4iv;
+import static android.opengl.GLES20.glUniformMatrix2fv;
+import static android.opengl.GLES20.glUniformMatrix3fv;
 import static android.opengl.GLES20.glUniformMatrix4fv;
 import static android.opengl.GLES20.glUseProgram;
-
 
 public final class Program {
     private static Pattern vertexShaderAttributePattern;
@@ -48,7 +59,6 @@ public final class Program {
     private static Pattern shaderUniformGroupPattern;
 
     private static int _maxGenericAttributes = -1;
-
 
     private static int _nextGenericAttributeIndex = 0;
 
@@ -60,9 +70,25 @@ public final class Program {
 
     private int id;
     private ArrayList<AttributeReference> attributes;
-    private ArrayList<Uniform> uniforms;
+    private ArrayList<UniformReference> uniformReferences;
+    private Map<DefinedUniformType, VariableReferenceable.VariableMatcher> definedUniforms;
+    private Map<DefinedUniformType, List<UniformReference>> cachedDefinedUniforms;
 
-    public Program(Context context, String vertexShaderFileName, String fragmentShaderFileName) throws InitializationException {
+    public Program(Context context,
+                   String vertexShaderFileName,
+                   String fragmentShaderFileName,
+                   Map<DefinedUniformType, VariableReferenceable.VariableMatcher> definedUniforms) throws InitializationException {
+        this(context, vertexShaderFileName, fragmentShaderFileName);
+
+        if (definedUniforms == null)
+            throw new InitializationException("defined uniforms matcher map null");
+
+        this.definedUniforms = definedUniforms;
+    }
+
+    public Program(Context context,
+                   String vertexShaderFileName,
+                   String fragmentShaderFileName) throws InitializationException {
         int[] shaderCompileStatusIntegers = new int[2];
         int[] shaderLinkStatusIntegers = new int[1];
         int vertexShader;
@@ -71,7 +97,7 @@ public final class Program {
         String fragmentShaderSource;
 
         attributes = new ArrayList<AttributeReference>();
-        uniforms = new ArrayList<Uniform>();
+        uniformReferences = new ArrayList<UniformReference>();
 
         shaderCompileStatusIntegers[0] = -1;
         shaderCompileStatusIntegers[1] = -1;
@@ -153,8 +179,8 @@ public final class Program {
         inflateUniforms(vertexShaderSource);
         inflateUniforms(fragmentShaderSource);
 
-        for (Uniform uniform : uniforms) {
-            uniform.setUniformLocation(glGetUniformLocation(id, uniform.getName()));
+        for (UniformReference uniformReference : uniformReferences) {
+            uniformReference.setUniformLocation(glGetUniformLocation(id, uniformReference.getName()));
         }
 
     }
@@ -169,12 +195,31 @@ public final class Program {
         return _maxGenericAttributes;
     }
 
-    void bind() {
-        glUseProgram(id);
+    public List<UniformReference> getDefinedUniforms(DefinedUniformType definedUniformType) {
+        if (cachedDefinedUniforms == null)
+            cachedDefinedUniforms = new EnumMap<DefinedUniformType, List<UniformReference>>(DefinedUniformType.class);
+
+        if (!cachedDefinedUniforms.containsKey(definedUniformType)) {
+            List<UniformReference> requestedUniformsArrayList = new ArrayList<>();
+
+            for (Map.Entry<DefinedUniformType, VariableReferenceable.VariableMatcher> entry : this.definedUniforms.entrySet()) {
+                if (entry.getKey() == definedUniformType) {
+                    for (UniformReference uniformReference : uniformReferences) {
+                        if (entry.getValue().matches(uniformReference)) {
+                            requestedUniformsArrayList.add(uniformReference);
+                        }
+                    }
+                }
+            }
+
+            cachedDefinedUniforms.put(definedUniformType, requestedUniformsArrayList);
+        }
+
+        return cachedDefinedUniforms.get(definedUniformType);
     }
 
-    int getId() {
-        return this.id;
+    void bind() {
+        glUseProgram(id);
     }
 
     private void inflateUniforms(String shaderSource) throws InitializationException {
@@ -195,15 +240,15 @@ public final class Program {
                 String uniformTypeName = uniformMatcher.group(1);
                 String uniformName = uniformMatcher.group(2);
 
-                for (Uniform uniform : uniforms) {
-                    if (uniform.getTypeName().equals(uniformTypeName) && uniform.getName().equals(uniformName)) {
+                for (UniformReference uniformReference : uniformReferences) {
+                    if (uniformReference.getTypeName().equals(uniformTypeName) && uniformReference.getName().equals(uniformName)) {
                         duplicate = true;
                         break;
                     }
                 }
 
                 if (!duplicate) {
-                    uniforms.add(new Uniform(uniformTypeName, uniformName));
+                    uniformReferences.add(new UniformReference(uniformTypeName, uniformName));
                 }
             } else {
                 Matcher uniformGroupMatcher = shaderUniformGroupPattern.matcher(line);
@@ -218,15 +263,15 @@ public final class Program {
 
                         String uniformTypeName = uniformGroupMatcher.group(1);
 
-                        for (Uniform uniform : uniforms) {
-                            if (uniform.getTypeName().equals(uniformTypeName) && uniform.getName().equals(part)) {
+                        for (UniformReference uniformReference : uniformReferences) {
+                            if (uniformReference.getTypeName().equals(uniformTypeName) && uniformReference.getName().equals(part)) {
                                 duplicate = true;
                                 break;
                             }
                         }
 
                         if (!duplicate) {
-                            uniforms.add(new Uniform(uniformTypeName, part));
+                            uniformReferences.add(new UniformReference(uniformTypeName, part));
                         }
                     }
                 }
@@ -258,32 +303,42 @@ public final class Program {
         return attributes;
     }
 
-    ArrayList<Uniform> getUniforms() {
-        return uniforms;
+    ArrayList<UniformReference> getUniformReferences() {
+        return uniformReferences;
     }
 
     void unbind() {
         glUseProgram(0);
     }
 
+    public enum DefinedUniformType {
+        MODEL_MATRIX_UNIFORM,
+        VIEW_MATRIX_UNIFORM,
+        PROJECTION_MATRIX_UNIFORM,
+        ROTATION_MATRIX_UNIFORM
+    }
+
     //region inner classes
-    abstract class ShaderInputReference {
+    abstract class VariableReference implements VariableReferenceable {
         private String _typeName;
         private String _name;
 
-        ShaderInputReference(String typeName, String name) {
+        VariableReference(String typeName, String name) {
             this._typeName = typeName;
             this._name = name;
         }
 
-        String getTypeName() {
+        @Override
+        public String getTypeName() {
             return _typeName;
         }
 
-        String getName() {
+        @Override
+        public String getName() {
             return _name;
         }
 
+        @Override
         public Class getValueType() {
             switch (getTypeName()) {
                 case "float":
@@ -313,6 +368,7 @@ public final class Program {
             return null;
         }
 
+        @Override
         public int getValuesCount() {
             switch (getTypeName()) {
                 case "float":
@@ -346,126 +402,80 @@ public final class Program {
         }
     }
 
-    final class Uniform extends ShaderInputReference implements StateVariable {
+    final class UniformReference extends VariableReference {
         private final Object valuesLock = new Object();
         private int _uniformLocation = -1;
-        private float[] floatValues;
-        private int[] intValues;
-        private boolean[] boolValues;
-        private boolean _hasChanged = true;
+        private Object[] values;
 
-        Uniform(String typeName, String name) {
+        UniformReference(String typeName, String name) {
             super(typeName, name);
         }
 
-        int getUniformLocation() {
-            return _uniformLocation;
-        }
-
-        void setUniformLocation(int id) {
+        synchronized void setUniformLocation(int id) {
             this._uniformLocation = id;
         }
 
-        public void setValues(float[] values) {
-            synchronized (this.valuesLock) {
-                this.floatValues = Arrays.copyOf(values, getValuesCount());
-
-                setChanged();
-            }
-        }
-
-        public void setValues(int[] values) {
-            synchronized (this.valuesLock) {
-                this.intValues = Arrays.copyOf(values, getValuesCount());
-
-                setChanged();
-            }
-        }
-
-        public void setValues(boolean[] values) {
-            synchronized (this.valuesLock) {
-                this.boolValues = Arrays.copyOf(values, getValuesCount());
-
-                setChanged();
-            }
-        }
-
-        public void setValue(float value) {
-            synchronized (this.valuesLock) {
-                this.floatValues = new float[1];
-                this.floatValues[0] = value;
-
-                setChanged();
-            }
-        }
-
-        public void setValue(int value) {
-            synchronized (this.valuesLock) {
-                this.intValues = new int[1];
-                this.intValues[0] = value;
-
-                setChanged();
-            }
-        }
-
-        public void setValue(boolean value) {
-            synchronized (this.valuesLock) {
-                this.boolValues = new boolean[1];
-                this.boolValues[0] = value;
-
-                setChanged();
-            }
-        }
-
-        public String getDefinedName() {
-            return getName();
-        }
-
-        public String getDefinedTypeName() {
-            return getTypeName();
-        }
-
-        public void commitChange() {
-            boolean committed = false;
+        synchronized void setFloatValues(float[] values) throws InvalidOperationException {
+            if (!getValueType().toString().equals("float"))
+                throw new InvalidOperationException("incompatible value type");
+            else if (values.length < getValuesCount())
+                throw new InvalidOperationException("incompatible value count");
 
             switch (getTypeName()) {
+                case "float":
+                    glUniform1f(_uniformLocation, values[0]);
+                    break;
+                case "vec2":
+                    glUniform2fv(_uniformLocation, 1, values, 0);
+                    break;
+                case "vec3":
+                    glUniform3fv(_uniformLocation, 1, values, 0);
+                    break;
+                case "vec4":
+                    glUniform4fv(_uniformLocation, 1, values, 0);
+                    break;
+                case "mat2":
+                    glUniformMatrix2fv(_uniformLocation, 1, false, values, 0);
+                    break;
+                case "mat3":
+                    glUniformMatrix3fv(_uniformLocation, 1, false, values, 0);
+                    break;
                 case "mat4":
-                    synchronized (this.valuesLock) {
-                        glUniformMatrix4fv(getUniformLocation(), 1, false, floatValues, 0);
-                        committed = true;
-                    }
+                    glUniformMatrix4fv(_uniformLocation, 1, false, values, 0);
                     break;
             }
-
-            if (committed)
-                clearChanged();
         }
 
-        public boolean hasChanged() {
-            boolean returnValue;
+        synchronized void setIntValues(int[] values) throws InvalidOperationException {
+            if (!getValueType().toString().equals("int"))
+                throw new InvalidOperationException("incompatible value type");
+            else if (values.length < getValuesCount())
+                throw new InvalidOperationException("incompatible value count");
 
-            synchronized (this.valuesLock) {
-                returnValue = _hasChanged;
-            }
-
-            return returnValue;
-        }
-
-        private void setChanged() {
-            synchronized (this.valuesLock) {
-                _hasChanged = true;
-            }
-        }
-
-        private void clearChanged() {
-            synchronized (this.valuesLock) {
-                _hasChanged = false;
+            switch (getTypeName()) {
+                case "int":
+                    glUniform1i(_uniformLocation, values[0]);
+                    break;
+                case "ivec2":
+                    glUniform2iv(_uniformLocation, 1, values, 0);
+                    break;
+                case "ivec3":
+                    glUniform3iv(_uniformLocation, 1, values, 0);
+                    break;
+                case "ivec4":
+                    glUniform4iv(_uniformLocation, 1, values, 0);
+                    break;
+                case "sampler2D":
+                    glUniform1i(_uniformLocation, values[0]);
+                    break;
+                case "samplerCube":
+                    glUniform1i(_uniformLocation, values[0]);
+                    break;
             }
         }
     }
 
-    final class AttributeReference extends ShaderInputReference {
-
+    final class AttributeReference extends VariableReference {
         private int _genericVertexAttributeIndex = -1;
 
         AttributeReference(String typeName, String name) {
@@ -478,7 +488,6 @@ public final class Program {
 
             _nextGenericAttributeIndex++;
         }
-
 
         int getIndex() {
             return _genericVertexAttributeIndex;

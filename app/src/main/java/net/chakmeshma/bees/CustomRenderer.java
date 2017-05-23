@@ -6,17 +6,15 @@ import android.opengl.GLSurfaceView.Renderer;
 import net.chakmeshma.brutengine.development.DebugUtilities;
 import net.chakmeshma.brutengine.development.exceptions.InitializationException;
 import net.chakmeshma.brutengine.development.exceptions.RenderException;
-import net.chakmeshma.brutengine.mathematics.Viewable;
-import net.chakmeshma.brutengine.rendering.Drawable;
-import net.chakmeshma.brutengine.rendering.Drawable.AttributeBufferMapping;
-import net.chakmeshma.brutengine.rendering.Drawable.SimpleDrawable;
+import net.chakmeshma.brutengine.mathematics.Camera;
+import net.chakmeshma.brutengine.mathematics.Transform;
 import net.chakmeshma.brutengine.rendering.Mesh;
 import net.chakmeshma.brutengine.rendering.Mesh.ObjFile;
 import net.chakmeshma.brutengine.rendering.Program;
+import net.chakmeshma.brutengine.rendering.Renderable;
+import net.chakmeshma.brutengine.rendering.Renderable.SimpleRenderable;
 import net.chakmeshma.brutengine.rendering.StepLoadListener;
-import net.chakmeshma.brutengine.system.StateControllable;
-import net.chakmeshma.brutengine.system.StateControllable.SimpleViewableStateController;
-import net.chakmeshma.brutengine.system.StateVariable.StateVariableMatcher.EqualityMatcher;
+import net.chakmeshma.brutengine.rendering.VariableReferenceable;
 
 import java.util.HashMap;
 
@@ -52,9 +50,9 @@ import static net.chakmeshma.brutengine.development.DebugUtilities.FramerateCapt
 
 class CustomRenderer implements Renderer {
     private final Object renderingPausedLock = new Object();
-    private Viewable camera;
+    private Camera camera;
     private Context context;
-    private Drawable[] drawables;
+    private Renderable[] renderables;
     private boolean _renderingPaused = false;
 
     //region initialization/construction
@@ -91,21 +89,29 @@ class CustomRenderer implements Renderer {
     }
 
     private void initDrawables() throws InitializationException {
-        drawables = new Drawable[1];
+        renderables = new Renderable[1];
 
-        Program brutProgram = new Program(context, "shader.vert", "shader.frag");
+        HashMap<Program.DefinedUniformType, VariableReferenceable.VariableMatcher> definedUniforms = new HashMap<>();
+        definedUniforms.put(Program.DefinedUniformType.MODEL_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "modelMatrix"));
+        definedUniforms.put(Program.DefinedUniformType.VIEW_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "viewMatrix"));
+        definedUniforms.put(Program.DefinedUniformType.PROJECTION_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "projectionMatrix"));
+        definedUniforms.put(Program.DefinedUniformType.ROTATION_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat3", "rotationMatrix"));
 
-        StateControllable brutStateController =
-                new SimpleViewableStateController(
-                        new EqualityMatcher("mat4", "projection"),
-                        new EqualityMatcher("mat4", "modelview"),
-                        new EqualityMatcher("mat4", "normalMat"),
-                        60.0f,
-                        1.0f,
-                        2.0f,
-                        10000.0f);
+        Program brutProgram = new Program(context, "shader.vert", "shader.frag", definedUniforms);
 
-        camera = (Viewable) brutStateController;
+        camera = new Camera(
+                0.0f,
+                0.0f,
+                0.0f,
+                0.0f,
+                0.0f,
+                0.0f,
+                10.0f,
+                0.1f,
+                100.0f,
+                60.0f,
+                300,
+                300);
 
         HashMap<String, Integer> mappingWithNormal = new HashMap<>();
 
@@ -133,12 +139,7 @@ class CustomRenderer implements Renderer {
 
         meshes[0] = new Mesh(objFiles[0], meshStepLoadListener);
 
-//        meshes[1] = new Mesh(objFiles[1], meshStepLoadListener);
-
-        drawables[0] = new SimpleDrawable(brutProgram, meshes[0], brutStateController, new AttributeBufferMapping(mappingWithNormal));
-//        drawables[1] = new SimpleDrawable(brutProgram, meshes[1], brutStateController, new AttributeBufferMapping(mappingWithNormal));
-
-        camera.zoomCamera(-4.0f);
+        renderables[0] = new SimpleRenderable(brutProgram, meshes[0], new Transform(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f), camera);
     }
     //endregion
 
@@ -182,9 +183,7 @@ class CustomRenderer implements Renderer {
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         glViewport(0, 0, width, height);
 
-        final float ratio = (float) (((double) width) / ((double) height));
-
-        camera.setViewportRatio(ratio);
+        camera.setViewport(width, height);
 
         DebugUtilities.checkAssertGLError("directly after state onSurfaceChanged");
     }
@@ -194,12 +193,12 @@ class CustomRenderer implements Renderer {
         if (isRenderingPaused())
             return;
 
-        if (drawables != null && drawables.length > 0) {
+        if (renderables != null && renderables.length > 0) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            for (int i = 0; i < drawables.length; i++) {
+            for (int i = 0; i < renderables.length; i++) {
                 try {
-                    drawables[i].render();
+                    renderables[i].render();
                 } catch (RenderException | InitializationException e) {
                     throw new RuntimeException(e);
                 }
@@ -216,7 +215,7 @@ class CustomRenderer implements Renderer {
     }
     //endregion
 
-    public Viewable getViewable() {
+    Camera getCamera() {
         return camera;
     }
 }
