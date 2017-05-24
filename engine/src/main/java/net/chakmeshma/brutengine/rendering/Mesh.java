@@ -191,7 +191,7 @@ public final class Mesh {
         return _indicesCount;
     }
 
-    private IndexArrayBuffer getIndicesBuffer() {
+    IndexArrayBuffer getIndicesBuffer() {
         return this._indexArrayBuffer;
     }
 
@@ -584,19 +584,19 @@ public final class Mesh {
             return this.definedBufferType;
         }
 
-        public void bind() {
+        void bind() {
             this.delegatedBuffer.bind();
         }
 
-        public void unbind() {
+        void unbind() {
             this.delegatedBuffer.unbind();
         }
 
-        public int getBufferStride() {
+        int getBufferStride() {
             return this.stride;
         }
 
-        public int getBufferOffset() {
+        int getBufferOffset() {
             return this.offset;
         }
     }
@@ -676,7 +676,7 @@ public final class Mesh {
         }
     }
 
-    private final class IndexArrayBuffer extends Buffer {
+    final class IndexArrayBuffer extends Buffer {
         {
             this.designatedBufferBinding = GL_ELEMENT_ARRAY_BUFFER;
         }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="CustomAppCompatImageView">
+        <attr name="refPrcWidth" format="float" />
+        <attr name="refPrcHeight" format="float" />
+    </declare-styleable>
+</resources>

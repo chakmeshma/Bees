@@ -5,7 +5,7 @@ android {
         config {
             keyAlias 'RTK'
             keyPassword 'absurd'
-            storeFile file('C:/Users/chakm/Desktop/release_test_key.jks')
+            storeFile file('../RTK')
             storePassword 'absurd'
         }
     }

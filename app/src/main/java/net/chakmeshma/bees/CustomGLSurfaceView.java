@@ -7,8 +7,6 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 
-import net.chakmeshma.brutengine.development.exceptions.InvalidOperationException;
-
 
 class CustomGLSurfaceView extends GLSurfaceView {
     private CustomRenderer renderer;
@@ -87,11 +85,7 @@ class CustomGLSurfaceView extends GLSurfaceView {
 
                 switch (event.getPointerCount()) {
                     case 1:
-                        try {
-                            renderer.getCamera().rotateCamera(dx, dy);
-                        } catch (InvalidOperationException e) {
-                            e.printStackTrace();
-                        }
+                        renderer.getCamera().rotateCamera(dx, dy, 0.0f);
                         break;
                     case 2:
 

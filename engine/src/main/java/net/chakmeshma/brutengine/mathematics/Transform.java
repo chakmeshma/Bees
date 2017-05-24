@@ -2,6 +2,8 @@ package net.chakmeshma.brutengine.mathematics;
 
 import android.opengl.Matrix;
 
+
+//TODO add caching
 public class Transform {
     private static final float[] defaultEulerRotation = new float[]{1.0f, 1.0f, 1.0f};
     private static final float[] defaultScale = new float[]{1.0f, 1.0f, 1.0f};
@@ -88,6 +90,10 @@ public class Transform {
         Matrix.multiplyMM(this.modelMatrix, 0, this.rotationMatrix, 0, this.modelMatrix, 0);
         Matrix.translateM(this.modelMatrix, 0, this.modelMatrix, 0, this.pivotX, this.pivotY, this.pivotZ);
         Matrix.multiplyMM(this.modelMatrix, 0, this.translationMatrix, 0, this.modelMatrix, 0);
+    }
+
+    public synchronized float[] getRotationMatrix() {
+        return this.rotationMatrix;
     }
 
     private synchronized void computeScaleMatrix() {

@@ -43,6 +43,7 @@ import static net.chakmeshma.brutengine.development.DebugUtilities.FramerateCapt
 import static net.chakmeshma.brutengine.development.DebugUtilities.FramerateCapture.popTimestampsAll;
 
 public class GameActivity extends AppCompatActivity {
+    //region fields
     public static final int MESSAGE_PART_LOADED = 0x00;
     public static final int MESSAGE_COMPLETE_LOADED = 0x01;
     public static final int MESSAGE_EXTEND_LOAD_PARTS_COUNT = 0x02;
@@ -77,6 +78,7 @@ public class GameActivity extends AppCompatActivity {
     private volatile List<Entry> meanChartEntries;
     private volatile List<Entry> minChartEntries;
     private float lastChartX = 0.0f;
+    //endregion
 
     //region dimensions and sizes
     static int getVerticalSize() {

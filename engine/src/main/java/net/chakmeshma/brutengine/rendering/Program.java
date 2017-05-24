@@ -73,15 +73,15 @@ public final class Program {
     private Map<DefinedAttributeType, List<AttributeReference>> definedAttributes;
 
     public Program(String vertexShaderFileName, String fragmentShaderFileName,
-                   Map<DefinedUniformType, VariableReferenceable.VariableMatcher> definedUniforms,
-                   Map<DefinedAttributeType, VariableReferenceable.VariableMatcher> definedAttributes) throws InitializationException {
+                   Map<DefinedUniformType, VariableReferenceable.VariableMatcher> declaredDefinedUniforms,
+                   Map<DefinedAttributeType, VariableReferenceable.VariableMatcher> declaredDefinedAttributes) throws InitializationException {
         this(vertexShaderFileName, fragmentShaderFileName);
 
         //region assert definitions not null
-        if (definedAttributes == null)
+        if (declaredDefinedAttributes == null)
             throw new InitializationException("defined attributes matcher map null");
 
-        if (definedUniforms == null) {
+        if (declaredDefinedUniforms == null) {
             throw new InitializationException("defined uniforms matcher map null");
         }
         //endregion
@@ -89,8 +89,8 @@ public final class Program {
         this.definedAttributes = new HashMap<>();
 
         for (AttributeReference attributeReference : attributes) {
-            for (DefinedAttributeType definedAttributeType : definedAttributes.keySet()) {
-                if (definedAttributes.get(definedAttributeType).matches(attributeReference)) {
+            for (DefinedAttributeType definedAttributeType : declaredDefinedAttributes.keySet()) {
+                if (declaredDefinedAttributes.get(definedAttributeType).matches(attributeReference)) {
                     if (!this.definedAttributes.containsKey(definedAttributeType))
                         this.definedAttributes.put(definedAttributeType, new ArrayList<AttributeReference>());
 
@@ -102,8 +102,8 @@ public final class Program {
         this.definedUniforms = new HashMap<>();
 
         for (Uniform uniform : uniforms) {
-            for (DefinedUniformType definedUniformType : definedUniforms.keySet()) {
-                if (definedUniforms.get(definedUniformType).matches(uniform)) {
+            for (DefinedUniformType definedUniformType : declaredDefinedUniforms.keySet()) {
+                if (declaredDefinedUniforms.get(definedUniformType).matches(uniform)) {
                     if (!this.definedUniforms.containsKey(definedUniformType))
                         this.definedUniforms.put(definedUniformType, new ArrayList<Uniform>());
 
@@ -220,7 +220,7 @@ public final class Program {
         return _maxGenericAttributes;
     }
 
-    public List<Uniform> getDefinedUniform(DefinedUniformType definedUniformType) {
+    public List<Uniform> getDefinedUniforms(DefinedUniformType definedUniformType) {
         if (definedUniforms.containsKey(definedUniformType))
             return definedUniforms.get(definedUniformType);
         else

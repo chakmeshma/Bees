@@ -16,7 +16,8 @@ import net.chakmeshma.brutengine.rendering.Renderable.SimpleRenderable;
 import net.chakmeshma.brutengine.rendering.StepLoadListener;
 import net.chakmeshma.brutengine.rendering.VariableReferenceable;
 
-import java.util.HashMap;
+import java.util.EnumMap;
+import java.util.Map;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -91,16 +92,21 @@ class CustomRenderer implements Renderer {
     private void initDrawables() throws InitializationException {
         renderables = new Renderable[1];
 
-        HashMap<Program.DefinedUniformType, VariableReferenceable.VariableMatcher> definedUniforms = new HashMap<>();
+        //region program setup
+        Map<Program.DefinedUniformType, VariableReferenceable.VariableMatcher> definedUniforms = new EnumMap<>(Program.DefinedUniformType.class);
+        definedUniforms.put(Program.DefinedUniformType.MODEL_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "modelMat"));
+        definedUniforms.put(Program.DefinedUniformType.VIEW_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "viewMat"));
+        definedUniforms.put(Program.DefinedUniformType.PROJECTION_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "projectionMat"));
+        definedUniforms.put(Program.DefinedUniformType.ROTATION_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat3", "normalMat"));
 
-        //TODO changed *_MATRIX_UNIFORM to MATRIX_UNIFORM (add more abstraction)
-        definedUniforms.put(Program.DefinedUniformType.MODEL_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "modelMatrix"));
-        definedUniforms.put(Program.DefinedUniformType.VIEW_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "viewMatrix"));
-        definedUniforms.put(Program.DefinedUniformType.PROJECTION_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "projectionMatrix"));
-        definedUniforms.put(Program.DefinedUniformType.ROTATION_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat3", "rotationMatrix"));
+        Map<Program.DefinedAttributeType, VariableReferenceable.VariableMatcher> definedAttributes = new EnumMap<>(Program.DefinedAttributeType.class);
+        definedAttributes.put(Program.DefinedAttributeType.POSITION_ATTRIBUTE, new VariableReferenceable.VariableMatcher.EqualityMatcher("vec3", "positions"));
+        definedAttributes.put(Program.DefinedAttributeType.NORMAL_ATTRIBUTE, new VariableReferenceable.VariableMatcher.EqualityMatcher("vec3", "normals"));
 
-        Program brutProgram = new Program("shader.vert", "shader.frag", definedUniforms);
+        Program brutProgram = new Program("shader.vert", "shader.frag", definedUniforms, definedAttributes);
+        //endregion
 
+        //region camera setup
         camera = new Camera(
                 0.0f,
                 0.0f,
@@ -114,7 +120,9 @@ class CustomRenderer implements Renderer {
                 60.0f,
                 300,
                 300);
+        //endregion
 
+        //region mesh setup
         ObjFile[] objFiles = new ObjFile[1];
 
         objFiles[0] = new ObjFile(context, "ico.obj");
@@ -134,6 +142,7 @@ class CustomRenderer implements Renderer {
         };
 
         meshes[0] = new Mesh(objFiles[0], meshStepLoadListener);
+        //endregion
 
         renderables[0] = new SimpleRenderable(brutProgram, meshes[0], new Transform(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f), camera);
     }
