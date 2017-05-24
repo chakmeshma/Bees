@@ -7,7 +7,7 @@ import static android.opengl.GLES20.GL_UNSIGNED_SHORT;
 
 
 public class GLUtilities {
-    public static int getGLTypeIdentifier(Class typeClass, GLAdaptionRule typeAdaptionRule) throws InvalidAdaptionOperationException {
+    public static int getGLTypeIdentifier(Class typeClass, GLAdaptionRule typeAdaptionRule) {
         switch (typeAdaptionRule) {
 
             case GL_VERTEX_ATTRIB_POINTER__ATTRIBUTE_REF_SINGLE_TYPE:
@@ -22,7 +22,7 @@ public class GLUtilities {
                 }
         }
 
-        throw new InvalidAdaptionOperationException(typeAdaptionRule);
+        return 0;
     }
 
 

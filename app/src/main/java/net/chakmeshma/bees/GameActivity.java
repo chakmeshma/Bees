@@ -27,6 +27,7 @@ import com.github.mikephil.charting.formatter.IValueFormatter;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.github.mikephil.charting.utils.ViewPortHandler;
 
+import net.chakmeshma.brutengine.Engine;
 import net.chakmeshma.brutengine.development.DebugUtilities;
 import net.chakmeshma.brutengine.development.exceptions.InitializationException;
 import net.chakmeshma.brutengine.development.exceptions.InvalidStackOperationException;
@@ -212,17 +213,6 @@ public class GameActivity extends AppCompatActivity {
                                 throw new InitializationException("initialization already started!");
 
                             init();
-
-                            surfaceView = new CustomGLSurfaceView(GameActivity.this);
-                            renderer = surfaceView.setupRenderer(GameActivity.this);
-                            RelativeLayout.LayoutParams surfaceViewLayoutParams;
-                            surfaceViewLayoutParams = new RelativeLayout.LayoutParams(getVerticalSize(), getHorizontalSize());
-                            surfaceViewLayoutParams.addRule(CENTER_IN_PARENT, TRUE);
-                            surfaceView.setLayoutParams(surfaceViewLayoutParams);
-                            root.addView(surfaceView, 0);
-
-                            initializationStarted = true;
-
                         } catch (InitializationException e) {
                             throw new RuntimeException(e);
                         }
@@ -262,6 +252,10 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private void init() throws InitializationException {
+        Engine.init(this);
+
+        initializationStarted = true;
+
         root = (ViewGroup) findViewById(R.id.main_relative_layout);
         loadingFrame = (ViewGroup) findViewById(R.id.loading_relative_layout);
         loadingProgressBar = (ProgressBar) findViewById(R.id.loading_progressbar);
@@ -271,6 +265,14 @@ public class GameActivity extends AppCompatActivity {
 
         initLoadingWaiterThread().start();
         initDebugThread().start();
+
+        surfaceView = new CustomGLSurfaceView(GameActivity.this);
+        renderer = surfaceView.setupRenderer(GameActivity.this);
+        RelativeLayout.LayoutParams surfaceViewLayoutParams;
+        surfaceViewLayoutParams = new RelativeLayout.LayoutParams(getVerticalSize(), getHorizontalSize());
+        surfaceViewLayoutParams.addRule(CENTER_IN_PARENT, TRUE);
+        surfaceView.setLayoutParams(surfaceViewLayoutParams);
+        root.addView(surfaceView, 0);
     }
 
     private Thread initLoadingWaiterThread() {

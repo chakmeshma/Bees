@@ -92,12 +92,14 @@ class CustomRenderer implements Renderer {
         renderables = new Renderable[1];
 
         HashMap<Program.DefinedUniformType, VariableReferenceable.VariableMatcher> definedUniforms = new HashMap<>();
+
+        //TODO changed *_MATRIX_UNIFORM to MATRIX_UNIFORM (add more abstraction)
         definedUniforms.put(Program.DefinedUniformType.MODEL_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "modelMatrix"));
         definedUniforms.put(Program.DefinedUniformType.VIEW_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "viewMatrix"));
         definedUniforms.put(Program.DefinedUniformType.PROJECTION_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "projectionMatrix"));
         definedUniforms.put(Program.DefinedUniformType.ROTATION_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat3", "rotationMatrix"));
 
-        Program brutProgram = new Program(context, "shader.vert", "shader.frag", definedUniforms);
+        Program brutProgram = new Program("shader.vert", "shader.frag", definedUniforms);
 
         camera = new Camera(
                 0.0f,
@@ -113,22 +115,16 @@ class CustomRenderer implements Renderer {
                 300,
                 300);
 
-        HashMap<String, Integer> mappingWithNormal = new HashMap<>();
-
-        mappingWithNormal.put("inputPosition", 0);
-        mappingWithNormal.put("inputNormal", 1);
-
         ObjFile[] objFiles = new ObjFile[1];
 
-        //objFiles[0] = new ObjFile(context, "ico outersphere.obj");
         objFiles[0] = new ObjFile(context, "ico.obj");
 
         Mesh[] meshes = new Mesh[1];
 
         StepLoadListener meshStepLoadListener = new StepLoadListener() {
             @Override
-            public void setExtraPartCount(int extraPartCount) {
-                sendMessageToUIThreadHandler(MESSAGE_EXTEND_LOAD_PARTS_COUNT, extraPartCount);
+            public void setPartCount(int partCount) {
+                sendMessageToUIThreadHandler(MESSAGE_EXTEND_LOAD_PARTS_COUNT, partCount);
             }
 
             @Override

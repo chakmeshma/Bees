@@ -20,13 +20,12 @@ public class Camera {
             int viewPortHeight) {
     }
 
-
-    public synchronized float[] getProjectionMatrix() {
-        return projectionMatrix;
+    public synchronized float[] getViewMatrix() {
+        //TODO: implement
     }
 
-    public synchronized float[] getViewMatrix() {
-        return viewMatrix;
+    public synchronized float[] getProjectionMatrix() {
+        //TODO: implement
     }
 
     public void setViewport(int width, int height) {

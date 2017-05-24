@@ -13,6 +13,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
+import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,7 +27,6 @@ import static android.opengl.GLES20.GL_TRIANGLES;
 import static android.opengl.GLES20.glBindBuffer;
 import static android.opengl.GLES20.glBufferData;
 import static android.opengl.GLES20.glGenBuffers;
-import static net.chakmeshma.brutengine.rendering.Renderable.AttributeBufferMapping;
 
 
 public final class Mesh {
@@ -35,6 +35,8 @@ public final class Mesh {
     private IndexArrayBuffer _indexArrayBuffer;
     private VertexArrayBuffer[] _vertexArrayBuffers;
     private StepLoadListener stepLoadListener;
+    private Map<Program.AttributeReference, MeshBufferable> attributesMap;
+    private boolean _changed = true;
 
     public Mesh(ObjFile objFile, StepLoadListener stepLoadListener) throws InitializationException {
         this.stepLoadListener = stepLoadListener;
@@ -74,7 +76,7 @@ public final class Mesh {
                 short[] resortedIndices = new short[indicesCount];
 
                 if (stepLoadListener != null) {
-                    stepLoadListener.setExtraPartCount(indicesCount);
+                    stepLoadListener.setPartCount(indicesCount);
                 }
 
                 for (int i = 0; i < indicesCount; i++) {
@@ -94,8 +96,8 @@ public final class Mesh {
                 IndexArrayBuffer indexArrayBuffer = new IndexArrayBuffer(BufferUsageHint.STATIC_DRAW);
                 VertexArrayBuffer vertexArrayBuffer = new VertexArrayBuffer(BufferUsageHint.STATIC_DRAW);
 
-                indexArrayBuffer.uploadData(resortedIndices);
-                vertexArrayBuffer.uploadData(resortedVertices);
+                indexArrayBuffer.uploadDataToGAC(resortedIndices);
+                vertexArrayBuffer.uploadDataToGAC(resortedVertices);
 
                 this._indicesCount = indicesCount;
                 this._indexArrayBuffer = indexArrayBuffer;
@@ -122,7 +124,7 @@ public final class Mesh {
                 short[] resortedIndices = new short[indicesCount];
 
                 if (stepLoadListener != null) {
-                    stepLoadListener.setExtraPartCount(indicesCount);
+                    stepLoadListener.setPartCount(indicesCount);
                 }
 
                 for (int i = 0; i < indicesCount; i++) {
@@ -146,9 +148,9 @@ public final class Mesh {
                 VertexArrayBuffer vertexArrayBuffer = new VertexArrayBuffer(BufferUsageHint.STATIC_DRAW);
                 VertexArrayBuffer normalArrayBuffer = new VertexArrayBuffer(BufferUsageHint.STATIC_DRAW);
 
-                indexArrayBuffer.uploadData(resortedIndices);
-                vertexArrayBuffer.uploadData(resortedVertices);
-                normalArrayBuffer.uploadData(resortedNormals);
+                indexArrayBuffer.uploadDataToGAC(resortedIndices); //GAC: Graphics Accelerator Card
+                vertexArrayBuffer.uploadDataToGAC(resortedVertices);
+                normalArrayBuffer.uploadDataToGAC(resortedNormals);
 
                 this._indicesCount = indicesCount;
                 this._indexArrayBuffer = indexArrayBuffer;
@@ -191,8 +193,12 @@ public final class Mesh {
         return GL_TRIANGLES;
     }
 
-    AttributeBufferMapping getAttributeBufferMapping() {
+    private void clearChanged() {
+        _changed = false;
+    }
 
+    private boolean hasChanged() {
+        return _changed;
     }
 
     private enum BufferUsageHint {
@@ -592,7 +598,7 @@ public final class Mesh {
             super(usageHint);
         }
 
-        void uploadData(float[] data) {
+        void uploadDataToGAC(float[] data) {
             int dataLength = data.length * (Float.SIZE / 8);
 
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(dataLength);
@@ -618,7 +624,7 @@ public final class Mesh {
             super(usageHint);
         }
 
-        void uploadData(short[] data) {
+        void uploadDataToGAC(short[] data) {
             int dataLength = data.length * (Short.SIZE / 8);
 
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(dataLength);
@@ -634,7 +640,7 @@ public final class Mesh {
             unbind();
         }
 
-        private void uploadData(byte[] data) {
+        private void uploadDataToGAC(byte[] data) {
             int dataLength = data.length * (Byte.SIZE / 8);
 
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(dataLength);
@@ -648,6 +654,15 @@ public final class Mesh {
 
             unbind();
         }
+    }
+
+    public interface MeshBufferable {
+
+        int getBufferIndex();
+
+        int getBufferStride();
+
+        int getBufferOffset();
     }
     //endregion
 }

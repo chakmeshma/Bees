@@ -1,7 +1,5 @@
 package net.chakmeshma.brutengine.rendering;
 
-import android.content.Context;
-
 import net.chakmeshma.brutengine.development.exceptions.GLCustomException;
 import net.chakmeshma.brutengine.development.exceptions.GLCustomShaderException;
 import net.chakmeshma.brutengine.development.exceptions.InitializationException;
@@ -57,9 +55,7 @@ public final class Program {
     private static Pattern vertexShaderAttributePattern;
     private static Pattern shaderUniformPattern;
     private static Pattern shaderUniformGroupPattern;
-
     private static int _maxGenericAttributes = -1;
-
     private static int _nextGenericAttributeIndex = 0;
 
     static {
@@ -70,15 +66,15 @@ public final class Program {
 
     private int id;
     private ArrayList<AttributeReference> attributes;
-    private ArrayList<UniformReference> uniformReferences;
+    private ArrayList<Uniform> uniforms;
     private Map<DefinedUniformType, VariableReferenceable.VariableMatcher> definedUniforms;
-    private Map<DefinedUniformType, List<UniformReference>> cachedDefinedUniforms;
+    private Map<DefinedUniformType, List<Uniform>> cachedDefinedUniforms;
 
-    public Program(Context context,
-                   String vertexShaderFileName,
+    public
+    Program(String vertexShaderFileName,
                    String fragmentShaderFileName,
                    Map<DefinedUniformType, VariableReferenceable.VariableMatcher> definedUniforms) throws InitializationException {
-        this(context, vertexShaderFileName, fragmentShaderFileName);
+        this(vertexShaderFileName, fragmentShaderFileName);
 
         if (definedUniforms == null)
             throw new InitializationException("defined uniforms matcher map null");
@@ -86,8 +82,8 @@ public final class Program {
         this.definedUniforms = definedUniforms;
     }
 
-    public Program(Context context,
-                   String vertexShaderFileName,
+    public
+    Program(String vertexShaderFileName,
                    String fragmentShaderFileName) throws InitializationException {
         int[] shaderCompileStatusIntegers = new int[2];
         int[] shaderLinkStatusIntegers = new int[1];
@@ -97,7 +93,7 @@ public final class Program {
         String fragmentShaderSource;
 
         attributes = new ArrayList<AttributeReference>();
-        uniformReferences = new ArrayList<UniformReference>();
+        uniforms = new ArrayList<Uniform>();
 
         shaderCompileStatusIntegers[0] = -1;
         shaderCompileStatusIntegers[1] = -1;
@@ -107,7 +103,7 @@ public final class Program {
         fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 
         try {
-            vertexShaderSource = AssetFileReader.getAssetFileAsString(context, vertexShaderFileName);
+            vertexShaderSource = AssetFileReader.getSingleton().getAssetFileAsString(vertexShaderFileName);
         } catch (IOException e) {
             throw new InitializationException(e.getMessage());
         }
@@ -115,7 +111,7 @@ public final class Program {
         glShaderSource(vertexShader, vertexShaderSource);
 
         try {
-            fragmentShaderSource = AssetFileReader.getAssetFileAsString(context, fragmentShaderFileName);
+            fragmentShaderSource = AssetFileReader.getSingleton().getAssetFileAsString(fragmentShaderFileName);
         } catch (IOException e) {
             throw new InitializationException(e.getMessage());
         }
@@ -179,13 +175,14 @@ public final class Program {
         inflateUniforms(vertexShaderSource);
         inflateUniforms(fragmentShaderSource);
 
-        for (UniformReference uniformReference : uniformReferences) {
-            uniformReference.setUniformLocation(glGetUniformLocation(id, uniformReference.getName()));
+        for (Uniform uniform : uniforms) {
+            uniform.setUniformLocation(glGetUniformLocation(id, uniform.getName()));
         }
 
     }
 
-    private static int _getMaxGenericAttributes() {
+    private static int
+    _getMaxGenericAttributes() {
         if (_maxGenericAttributes == -1) {
             int[] maxAttribs = new int[1];
             glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, maxAttribs, 0);
@@ -195,18 +192,19 @@ public final class Program {
         return _maxGenericAttributes;
     }
 
-    public List<UniformReference> getDefinedUniforms(DefinedUniformType definedUniformType) {
+    public List<Uniform>
+    getDefinedUniforms(DefinedUniformType definedUniformType) {
         if (cachedDefinedUniforms == null)
-            cachedDefinedUniforms = new EnumMap<DefinedUniformType, List<UniformReference>>(DefinedUniformType.class);
+            cachedDefinedUniforms = new EnumMap<DefinedUniformType, List<Uniform>>(DefinedUniformType.class);
 
         if (!cachedDefinedUniforms.containsKey(definedUniformType)) {
-            List<UniformReference> requestedUniformsArrayList = new ArrayList<>();
+            List<Uniform> requestedUniformsArrayList = new ArrayList<>();
 
             for (Map.Entry<DefinedUniformType, VariableReferenceable.VariableMatcher> entry : this.definedUniforms.entrySet()) {
                 if (entry.getKey() == definedUniformType) {
-                    for (UniformReference uniformReference : uniformReferences) {
-                        if (entry.getValue().matches(uniformReference)) {
-                            requestedUniformsArrayList.add(uniformReference);
+                    for (Uniform uniform : uniforms) {
+                        if (entry.getValue().matches(uniform)) {
+                            requestedUniformsArrayList.add(uniform);
                         }
                     }
                 }
@@ -218,11 +216,18 @@ public final class Program {
         return cachedDefinedUniforms.get(definedUniformType);
     }
 
-    void bind() {
+    void
+    bind() {
         glUseProgram(id);
     }
 
-    private void inflateUniforms(String shaderSource) throws InitializationException {
+    void
+    unbind() {
+        glUseProgram(0);
+    }
+
+    private void
+    inflateUniforms(String shaderSource) throws InitializationException {
         Matcher uniformMatcher = null;
 
         Scanner scanner = new Scanner(shaderSource);
@@ -240,15 +245,15 @@ public final class Program {
                 String uniformTypeName = uniformMatcher.group(1);
                 String uniformName = uniformMatcher.group(2);
 
-                for (UniformReference uniformReference : uniformReferences) {
-                    if (uniformReference.getTypeName().equals(uniformTypeName) && uniformReference.getName().equals(uniformName)) {
+                for (Uniform uniform : uniforms) {
+                    if (uniform.getTypeName().equals(uniformTypeName) && uniform.getName().equals(uniformName)) {
                         duplicate = true;
                         break;
                     }
                 }
 
                 if (!duplicate) {
-                    uniformReferences.add(new UniformReference(uniformTypeName, uniformName));
+                    uniforms.add(new Uniform(uniformTypeName, uniformName));
                 }
             } else {
                 Matcher uniformGroupMatcher = shaderUniformGroupPattern.matcher(line);
@@ -263,15 +268,15 @@ public final class Program {
 
                         String uniformTypeName = uniformGroupMatcher.group(1);
 
-                        for (UniformReference uniformReference : uniformReferences) {
-                            if (uniformReference.getTypeName().equals(uniformTypeName) && uniformReference.getName().equals(part)) {
+                        for (Uniform uniform : uniforms) {
+                            if (uniform.getTypeName().equals(uniformTypeName) && uniform.getName().equals(part)) {
                                 duplicate = true;
                                 break;
                             }
                         }
 
                         if (!duplicate) {
-                            uniformReferences.add(new UniformReference(uniformTypeName, part));
+                            uniforms.add(new Uniform(uniformTypeName, part));
                         }
                     }
                 }
@@ -280,7 +285,8 @@ public final class Program {
         scanner.close();
     }
 
-    private void inflateAttributes(String vertexShaderSource) {
+    private void
+    inflateAttributes(String vertexShaderSource) {
         Matcher attributePatternMatcher = null;
 
         Scanner scanner = new Scanner(vertexShaderSource);
@@ -299,16 +305,14 @@ public final class Program {
         scanner.close();
     }
 
-    ArrayList<AttributeReference> getAttributeReferences() {
+    ArrayList<AttributeReference>
+    getAttributeReferences() {
         return attributes;
     }
 
-    ArrayList<UniformReference> getUniformReferences() {
-        return uniformReferences;
-    }
-
-    void unbind() {
-        glUseProgram(0);
+    ArrayList<Uniform>
+    getUniforms() {
+        return uniforms;
     }
 
     public enum DefinedUniformType {
@@ -319,27 +323,30 @@ public final class Program {
     }
 
     //region inner classes
-    abstract class VariableReference implements VariableReferenceable {
+    abstract class ProgramVariableReference implements VariableReferenceable {
         private String _typeName;
         private String _name;
 
-        VariableReference(String typeName, String name) {
+        ProgramVariableReference(String typeName, String name) {
             this._typeName = typeName;
             this._name = name;
         }
 
         @Override
-        public String getTypeName() {
+        public String
+        getTypeName() {
             return _typeName;
         }
 
         @Override
-        public String getName() {
+        public String
+        getName() {
             return _name;
         }
 
         @Override
-        public Class getValueType() {
+        public Class
+        getValueType() {
             switch (getTypeName()) {
                 case "float":
                 case "vec2":
@@ -369,7 +376,8 @@ public final class Program {
         }
 
         @Override
-        public int getValuesCount() {
+        public int
+        getValuesCount() {
             switch (getTypeName()) {
                 case "float":
                 case "bool":
@@ -402,12 +410,12 @@ public final class Program {
         }
     }
 
-    final class UniformReference extends VariableReference {
+    final class Uniform extends ProgramVariableReference {
         private final Object valuesLock = new Object();
         private int _uniformLocation = -1;
         private Object[] values;
 
-        UniformReference(String typeName, String name) {
+        Uniform(String typeName, String name) {
             super(typeName, name);
         }
 
@@ -475,7 +483,7 @@ public final class Program {
         }
     }
 
-    final class AttributeReference extends VariableReference {
+    final class AttributeReference extends ProgramVariableReference {
         private int _genericVertexAttributeIndex = -1;
 
         AttributeReference(String typeName, String name) {

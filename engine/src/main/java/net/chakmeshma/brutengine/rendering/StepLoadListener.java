@@ -5,7 +5,7 @@ package net.chakmeshma.brutengine.rendering;
  */
 
 public interface StepLoadListener {
-    void setExtraPartCount(int extraPartCount);
+    void setPartCount(int partCount);
 
     void partLoaded();
 }
