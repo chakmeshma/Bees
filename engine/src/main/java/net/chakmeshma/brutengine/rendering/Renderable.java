@@ -1,8 +1,9 @@
 package net.chakmeshma.brutengine.rendering;
 
+import android.opengl.GLES20;
+
 import net.chakmeshma.brutengine.development.DebugUtilities;
 import net.chakmeshma.brutengine.development.exceptions.InitializationException;
-import net.chakmeshma.brutengine.development.exceptions.InvalidAdaptionOperationException;
 import net.chakmeshma.brutengine.development.exceptions.InvalidOperationException;
 import net.chakmeshma.brutengine.development.exceptions.RenderException;
 import net.chakmeshma.brutengine.mathematics.Camera;
@@ -11,13 +12,12 @@ import net.chakmeshma.brutengine.mathematics.Transform;
 import java.util.HashMap;
 import java.util.Map;
 
-import android.opengl.GLES20;
 import static net.chakmeshma.brutengine.utilities.GLUtilities.GLAdaptionRule.GL_DRAW_ELEMENTS__MESH_INDICES_TYPE;
 import static net.chakmeshma.brutengine.utilities.GLUtilities.GLAdaptionRule.GL_VERTEX_ATTRIB_POINTER__ATTRIBUTE_REF_SINGLE_TYPE;
 import static net.chakmeshma.brutengine.utilities.GLUtilities.getGLTypeIdentifier;
 
 
-//  This class is not thread-safe and it should only be run by GL-thread.
+//  This class is not thread-safe and should only be run by GL-thread.
 public interface Renderable {
     void render() throws RenderException, InitializationException;
 
@@ -32,8 +32,7 @@ public interface Renderable {
         private Program program;
         private Transform transform;
         private Camera camera;
-        private Map<Program.AttributeReference, Mesh.MeshBufferable> attributeMeshBufferMapping;
-
+        private Map<Program.AttributeReference, Mesh.ARBuffer> attributeBufferMap;
 
         public SimpleRenderable(Program program,
                                 Mesh mesh,
@@ -42,30 +41,8 @@ public interface Renderable {
             setProgram(program);
             setMesh(mesh);
 
-            this.attributeMeshBufferMapping = new HashMap<Program.AttributeReference, Mesh.MeshBufferable>();
+            this.attributeBufferMap = new HashMap<Program.AttributeReference, Mesh.ARBuffer>();
 
-            for(Program.AttributeReference attributeReference : program.getAttributeReferences()) {
-
-
-                Mesh.MeshBufferable meshBuffer = new Mesh.MeshBufferable() {
-                    @Override
-                    public int getBufferIndex() throws InvalidOperationException {
-                        return 0;
-                    }
-
-                    @Override
-                    public int getBufferStride() {
-                        return 0;
-                    }
-
-                    @Override
-                    public int getBufferOffset() {
-                        return 0;
-                    }
-                };
-
-                this.attributeMeshBufferMapping.put(attributeReference, meshBuffer);
-            }
 
             setTransform(transform);
             setCamera(camera);
@@ -83,10 +60,6 @@ public interface Renderable {
             clearLinked();
         }
 
-        private void setMeshes(Mesh[] meshes) throws InitializationException {
-            setMesh(meshes[0]);
-        }
-
         private void setProgram(Program program) throws InitializationException {
             this.program = program;
 
@@ -95,14 +68,10 @@ public interface Renderable {
             clearLinked();
         }
 
-        private void setPrograms(Program[] programs) throws InitializationException {
-            setProgram(programs[0]);
-        }
-
         private void setTransform(Transform transform) {
             this.transform = transform;
 
-            this._cameraSet = true;
+            this._transformSet = true;
         }
 
         private void setCamera(Camera camera) {
@@ -136,10 +105,10 @@ public interface Renderable {
 
             //region attribute buffer linking
             for (Program.AttributeReference attributeReference : program.getAttributeReferences()) {
-                if (attributeMeshBufferMapping.containsKey(attributeReference)) {
-                    int bufferIndex;
+                if (attributeBufferMap.containsKey(attributeReference)) {
+                    Mesh.ARBuffer arBuffer = attributeBufferMap.get(attributeReference);
 
-                    bufferIndex = attributeMeshBufferMapping.get(attributeReference).getBufferIndex();
+
 
                     GLES20.glEnableVertexAttribArray(attributeReference.getIndex());
 
@@ -150,8 +119,8 @@ public interface Renderable {
                             attributeReference.getValuesCount(),
                             getGLTypeIdentifier(attributeReference.getValueType(), GL_VERTEX_ATTRIB_POINTER__ATTRIBUTE_REF_SINGLE_TYPE),
                             false,
-                            attributeMeshBufferMapping.get(attributeReference).getBufferStride(),
-                            attributeMeshBufferMapping.get(attributeReference).getBufferOffset());
+                            attributeBufferMap.get(attributeReference).getBufferStride(),
+                            attributeBufferMap.get(attributeReference).getBufferOffset());
                 } else
                     DebugUtilities.logWarning(String.format("unused/[unbound to buffer] attribute \"%s\" defined in shader(s)", attributeReference.getName()));
             }
@@ -201,10 +170,10 @@ public interface Renderable {
             mesh.getIndicesBuffer().unbind();
 
             for (Program.AttributeReference attributeReference : program.getAttributeReferences()) {
-                if (attributeMeshBufferMapping.containsKey(attributeReference)) {
+                if (attributeBufferMap.containsKey(attributeReference)) {
                     int bufferIndex;
 
-                    bufferIndex = attributeMeshBufferMapping.get(attributeReference).getBufferIndex();
+                    bufferIndex = attributeBufferMap.get(attributeReference).getBufferIndex();
                     GLES20.glDisableVertexAttribArray(attributeReference.getIndex());
 
                     mesh.getVertexArrayBuffers()[bufferIndex].unbind();
@@ -214,13 +183,6 @@ public interface Renderable {
             program.unbind();
             //endregion
         }
-
-        //region inner classes
-        public enum DefinedAttributeType {
-            POSITION_ATTRIBUTE,
-            NORMAL_ATTRIBUTE,
-        }
-        //endregion
     }
     //endregion
 }

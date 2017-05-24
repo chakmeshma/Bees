@@ -13,7 +13,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,22 +31,41 @@ import static android.opengl.GLES20.glGenBuffers;
 
 
 public final class Mesh {
-    private boolean hasNormals = false;
+    private boolean hasNormals;
     private int _indicesCount;
     private IndexArrayBuffer _indexArrayBuffer;
     private VertexArrayBuffer[] _vertexArrayBuffers;
     private StepLoadListener stepLoadListener;
-    private Map<Program.AttributeReference, MeshBufferable> attributesMap;
     private boolean _changed = true;
+    private List<ARBuffer> arBuffers;
 
     public Mesh(ObjFile objFile, StepLoadListener stepLoadListener) throws InitializationException {
         this.stepLoadListener = stepLoadListener;
 
         makeMesh(objFile);
+
+        populateARBuffers();
     }
 
     public Mesh(ObjFile objFile) throws InitializationException {
         makeMesh(objFile);
+
+        populateARBuffers();
+    }
+
+    private void populateARBuffers() {
+        arBuffers = new ArrayList<>();
+
+        if (!hasNormals()) {
+            arBuffers.add(new ARBuffer(DefinedBufferType.POSITIONS_BUFFER, _vertexArrayBuffers[0], 0, 0));
+        } else {
+            arBuffers.add(new ARBuffer(DefinedBufferType.POSITIONS_BUFFER, _vertexArrayBuffers[0], 0, 0));
+            arBuffers.add(new ARBuffer(DefinedBufferType.NORMALS_BUFFER, _vertexArrayBuffers[1], 0, 0));
+        }
+    }
+
+    List<ARBuffer> getARBuffers() {
+        return this.arBuffers;
     }
 
     private void makeMesh(ObjFile objFile) throws InitializationException {
@@ -53,8 +73,7 @@ public final class Mesh {
             if (!objFile.arrayLoaded(ObjFile.ArrayType.VERTEX_GEOMETRY_ARRAY) || !objFile.arrayLoaded(ObjFile.ArrayType.FACE_VERTEX_GEOMETRY_INDEX_ARRAY))
                 throw new InitializationException(String.format("ObjFile (%s) not loaded enough (missing geometry data)", objFile.getFileName()));
 
-            if (objFile.arrayLoaded(ObjFile.ArrayType.FACE_VERTEX_NORMAL_INDEX_ARRAY) && objFile.arrayLoaded(ObjFile.ArrayType.VERTEX_NORMAL_ARRAY))
-                hasNormals = true;
+            this.hasNormals = objFile.arrayLoaded(ObjFile.ArrayType.FACE_VERTEX_NORMAL_INDEX_ARRAY) && objFile.arrayLoaded(ObjFile.ArrayType.VERTEX_NORMAL_ARRAY);
 
             short[] geometryIndices;
             float[] vertices;
@@ -72,7 +91,7 @@ public final class Mesh {
 
                 vertices = objFile.getFloatArray(ObjFile.ArrayType.VERTEX_GEOMETRY_ARRAY);
 
-                float[] resortedVertices = new float[indicesCount * 3 + 3];
+                float[] resortedPositionVertices = new float[indicesCount * 3 + 3];///////////HARDCODED
                 short[] resortedIndices = new short[indicesCount];
 
                 if (stepLoadListener != null) {
@@ -82,8 +101,8 @@ public final class Mesh {
                 for (int i = 0; i < indicesCount; i++) {
                     int geometryIndex = geometryIndices[i];
 
-                    for (int j = 0; j < 3; j++) {
-                        resortedVertices[i * 3 + j] = vertices[geometryIndex * 3 + j];
+                    for (int j = 0; j < 3; j++) {///////////HARDCODED
+                        resortedPositionVertices[i * 3 + j] = vertices[geometryIndex * 3 + j];///////////HARDCODED
                     }
 
                     resortedIndices[i] = (short) i;
@@ -96,13 +115,13 @@ public final class Mesh {
                 IndexArrayBuffer indexArrayBuffer = new IndexArrayBuffer(BufferUsageHint.STATIC_DRAW);
                 VertexArrayBuffer vertexArrayBuffer = new VertexArrayBuffer(BufferUsageHint.STATIC_DRAW);
 
-                indexArrayBuffer.uploadDataToGAC(resortedIndices);
-                vertexArrayBuffer.uploadDataToGAC(resortedVertices);
+                indexArrayBuffer.writeFlush(resortedIndices);
+                vertexArrayBuffer.writeFlush(resortedPositionVertices);
 
                 this._indicesCount = indicesCount;
                 this._indexArrayBuffer = indexArrayBuffer;
-                this._vertexArrayBuffers = new VertexArrayBuffer[1];
-                this._vertexArrayBuffers[0] = vertexArrayBuffer;
+                this._vertexArrayBuffers = new VertexArrayBuffer[1];///////////HARDCODED
+                this._vertexArrayBuffers[0] = vertexArrayBuffer;///////////HARDCODED
             } else {
                 int indicesCount = objFile.getArraySize(ObjFile.ArrayType.FACE_VERTEX_GEOMETRY_INDEX_ARRAY);
                 int normalIndicesCount = objFile.getArraySize(ObjFile.ArrayType.FACE_VERTEX_NORMAL_INDEX_ARRAY);
@@ -119,9 +138,9 @@ public final class Mesh {
                 vertices = objFile.getFloatArray(ObjFile.ArrayType.VERTEX_GEOMETRY_ARRAY);
                 normals = objFile.getFloatArray(ObjFile.ArrayType.VERTEX_NORMAL_ARRAY);
 
-                float[] resortedVertices = new float[indicesCount * 3 + 3];
-                float[] resortedNormals = new float[indicesCount * 3 + 3];
-                short[] resortedIndices = new short[indicesCount];
+                float[] resortedVertices = new float[indicesCount * 3 + 3];///////////HARDCODED
+                float[] resortedNormals = new float[indicesCount * 3 + 3];///////////HARDCODED
+                short[] resortedIndices = new short[indicesCount];///////////HARDCODED
 
                 if (stepLoadListener != null) {
                     stepLoadListener.setPartCount(indicesCount);
@@ -132,8 +151,8 @@ public final class Mesh {
                     int normalIndex = normalIndices[i];
 
                     for (int j = 0; j < 3; j++) {
-                        resortedVertices[i * 3 + j] = vertices[geometryIndex * 3 + j];
-                        resortedNormals[i * 3 + j] = normals[normalIndex * 3 + j];
+                        resortedVertices[i * 3 + j] = vertices[geometryIndex * 3 + j];///////////HARDCODED
+                        resortedNormals[i * 3 + j] = normals[normalIndex * 3 + j];///////////HARDCODED
                     }
 
                     resortedIndices[i] = (short) i;
@@ -148,36 +167,35 @@ public final class Mesh {
                 VertexArrayBuffer vertexArrayBuffer = new VertexArrayBuffer(BufferUsageHint.STATIC_DRAW);
                 VertexArrayBuffer normalArrayBuffer = new VertexArrayBuffer(BufferUsageHint.STATIC_DRAW);
 
-                indexArrayBuffer.uploadDataToGAC(resortedIndices); //GAC: Graphics Accelerator Card
-                vertexArrayBuffer.uploadDataToGAC(resortedVertices);
-                normalArrayBuffer.uploadDataToGAC(resortedNormals);
+                indexArrayBuffer.writeFlush(resortedIndices);
+                vertexArrayBuffer.writeFlush(resortedVertices);
+                normalArrayBuffer.writeFlush(resortedNormals);
 
                 this._indicesCount = indicesCount;
                 this._indexArrayBuffer = indexArrayBuffer;
-                this._vertexArrayBuffers = new VertexArrayBuffer[2];
-                this._vertexArrayBuffers[0] = vertexArrayBuffer;
-                this._vertexArrayBuffers[1] = normalArrayBuffer;
+                this._vertexArrayBuffers = new VertexArrayBuffer[2];///////////HARDCODED
+                this._vertexArrayBuffers[0] = vertexArrayBuffer;///////////HARDCODED
+                this._vertexArrayBuffers[1] = normalArrayBuffer;///////////HARDCODED
             }
 
         } catch (InvalidOperationException e) {
             throw new InitializationException(e.getMessage());
         }
-
     }
 
     boolean hasNormals() {
         return hasNormals;
-    }
+    }/////////////////CODESMELL
 
     int getIndicesCount() {
         return _indicesCount;
     }
 
-    IndexArrayBuffer getIndicesBuffer() {
+    private IndexArrayBuffer getIndicesBuffer() {
         return this._indexArrayBuffer;
     }
 
-    VertexArrayBuffer[] getVertexArrayBuffers() {
+    private VertexArrayBuffer[] getVertexArrayBuffers() {
         return this._vertexArrayBuffers;
     }
 
@@ -201,13 +219,19 @@ public final class Mesh {
         return _changed;
     }
 
+    //region inner classes
+    enum DefinedBufferType {
+        POSITIONS_BUFFER,
+        NORMALS_BUFFER,
+        CUSTOM_BUFFER
+    }
+
     private enum BufferUsageHint {
         STATIC_DRAW,
         DYNAMIC_DRAW,
         STREAM_DRAW
     }
 
-    //region inner classes
     public static final class ObjFile {
         private static final Pattern _v_Pattern;
         private static final Pattern _f_Pattern;
@@ -543,27 +567,64 @@ public final class Mesh {
         }
     }
 
-    abstract class Buffer {
+    class ARBuffer extends Buffer { // AR: Abstract Renderable
+        private DefinedBufferType definedBufferType;
+        private VertexArrayBuffer delegatedBuffer;
+        private int offset;
+        private int stride;
+
+        ARBuffer(DefinedBufferType definedBufferType, Buffer delegatedBuffer, int bufferOffset, int bufferStride) { // recursive delegation (more abstraction) !?
+            this.definedBufferType = definedBufferType;
+            this.delegatedBuffer = (VertexArrayBuffer) delegatedBuffer;
+            this.offset = bufferOffset;
+            this.stride = bufferStride;
+        }
+
+        DefinedBufferType getBufferType() {
+            return this.definedBufferType;
+        }
+
+        public void bind() {
+            this.delegatedBuffer.bind();
+        }
+
+        public void unbind() {
+            this.delegatedBuffer.unbind();
+        }
+
+        public int getBufferStride() {
+            return this.stride;
+        }
+
+        public int getBufferOffset() {
+            return this.offset;
+        }
+    }
+
+    private abstract class Buffer {
         private final int USAGE_HINT_STATIC_DRAW = GL_STATIC_DRAW;
         private final int USAGE_HINT_DYNAMIC_DRAW = GL_DYNAMIC_DRAW;
         private final int USAGE_HINT_STREAM_DRAW = GL_STREAM_DRAW;
         private final int USAGE_HINT_DEFAULT = USAGE_HINT_STATIC_DRAW;
         int designatedBufferBinding;
         private BufferUsageHint usageHint;
-        private int bufferName;
+        private int realBufferName;
 
         Buffer(BufferUsageHint usageHint) {
             int[] bufferNames = new int[1];
 
             glGenBuffers(1, bufferNames, 0);
 
-            bufferName = bufferNames[0];
+            realBufferName = bufferNames[0];
 
             this.usageHint = usageHint;
         }
 
-        int getBufferName() {
-            return bufferName;
+        protected Buffer() {
+        }
+
+        int getRealBufferName() {
+            return realBufferName;
         }
 
         int getUsageHint() {
@@ -580,7 +641,7 @@ public final class Mesh {
         }
 
         void bind() {
-            glBindBuffer(designatedBufferBinding, getBufferName());
+            glBindBuffer(designatedBufferBinding, getRealBufferName());
         }
 
         void unbind() {
@@ -589,7 +650,7 @@ public final class Mesh {
 
     }
 
-    final class VertexArrayBuffer extends Buffer {
+    private final class VertexArrayBuffer extends Buffer {
         {
             this.designatedBufferBinding = GL_ARRAY_BUFFER;
         }
@@ -598,7 +659,7 @@ public final class Mesh {
             super(usageHint);
         }
 
-        void uploadDataToGAC(float[] data) {
+        void writeFlush(float[] data) {
             int dataLength = data.length * (Float.SIZE / 8);
 
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(dataLength);
@@ -607,7 +668,7 @@ public final class Mesh {
             floatBuffer.put(data);
             floatBuffer.position(0);
 
-            glBindBuffer(designatedBufferBinding, getBufferName());
+            glBindBuffer(designatedBufferBinding, getRealBufferName());
 
             glBufferData(designatedBufferBinding, dataLength, floatBuffer, getUsageHint());
 
@@ -615,7 +676,7 @@ public final class Mesh {
         }
     }
 
-    final class IndexArrayBuffer extends Buffer {
+    private final class IndexArrayBuffer extends Buffer {
         {
             this.designatedBufferBinding = GL_ELEMENT_ARRAY_BUFFER;
         }
@@ -624,7 +685,7 @@ public final class Mesh {
             super(usageHint);
         }
 
-        void uploadDataToGAC(short[] data) {
+        void writeFlush(short[] data) {
             int dataLength = data.length * (Short.SIZE / 8);
 
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(dataLength);
@@ -640,7 +701,7 @@ public final class Mesh {
             unbind();
         }
 
-        private void uploadDataToGAC(byte[] data) {
+        void writeFlush(byte[] data) {
             int dataLength = data.length * (Byte.SIZE / 8);
 
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(dataLength);
@@ -654,15 +715,6 @@ public final class Mesh {
 
             unbind();
         }
-    }
-
-    public interface MeshBufferable {
-
-        int getBufferIndex();
-
-        int getBufferStride();
-
-        int getBufferOffset();
     }
     //endregion
 }

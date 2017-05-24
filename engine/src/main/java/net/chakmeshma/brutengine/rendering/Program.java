@@ -8,7 +8,7 @@ import net.chakmeshma.brutengine.utilities.AssetFileReader;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -52,10 +52,12 @@ import static android.opengl.GLES20.glUniformMatrix4fv;
 import static android.opengl.GLES20.glUseProgram;
 
 public final class Program {
+    //region parsing patterns
     private static Pattern vertexShaderAttributePattern;
+    //endregion
+    private static int _maxGenericAttributes = -1;
     private static Pattern shaderUniformPattern;
     private static Pattern shaderUniformGroupPattern;
-    private static int _maxGenericAttributes = -1;
     private static int _nextGenericAttributeIndex = 0;
 
     static {
@@ -67,24 +69,51 @@ public final class Program {
     private int id;
     private ArrayList<AttributeReference> attributes;
     private ArrayList<Uniform> uniforms;
-    private Map<DefinedUniformType, VariableReferenceable.VariableMatcher> definedUniforms;
-    private Map<DefinedUniformType, List<Uniform>> cachedDefinedUniforms;
+    private Map<DefinedUniformType, List<Uniform>> definedUniforms;
+    private Map<DefinedAttributeType, List<AttributeReference>> definedAttributes;
 
-    public
-    Program(String vertexShaderFileName,
-                   String fragmentShaderFileName,
-                   Map<DefinedUniformType, VariableReferenceable.VariableMatcher> definedUniforms) throws InitializationException {
+    public Program(String vertexShaderFileName, String fragmentShaderFileName,
+                   Map<DefinedUniformType, VariableReferenceable.VariableMatcher> definedUniforms,
+                   Map<DefinedAttributeType, VariableReferenceable.VariableMatcher> definedAttributes) throws InitializationException {
         this(vertexShaderFileName, fragmentShaderFileName);
 
-        if (definedUniforms == null)
-            throw new InitializationException("defined uniforms matcher map null");
+        //region assert definitions not null
+        if (definedAttributes == null)
+            throw new InitializationException("defined attributes matcher map null");
 
-        this.definedUniforms = definedUniforms;
+        if (definedUniforms == null) {
+            throw new InitializationException("defined uniforms matcher map null");
+        }
+        //endregion
+
+        this.definedAttributes = new HashMap<>();
+
+        for (AttributeReference attributeReference : attributes) {
+            for (DefinedAttributeType definedAttributeType : definedAttributes.keySet()) {
+                if (definedAttributes.get(definedAttributeType).matches(attributeReference)) {
+                    if (!this.definedAttributes.containsKey(definedAttributeType))
+                        this.definedAttributes.put(definedAttributeType, new ArrayList<AttributeReference>());
+
+                    this.definedAttributes.get(definedAttributeType).add(attributeReference);
+                }
+            }
+        }
+
+        this.definedUniforms = new HashMap<>();
+
+        for (Uniform uniform : uniforms) {
+            for (DefinedUniformType definedUniformType : definedUniforms.keySet()) {
+                if (definedUniforms.get(definedUniformType).matches(uniform)) {
+                    if (!this.definedUniforms.containsKey(definedUniformType))
+                        this.definedUniforms.put(definedUniformType, new ArrayList<Uniform>());
+
+                    this.definedUniforms.get(definedUniformType).add(uniform);
+                }
+            }
+        }
     }
 
-    public
-    Program(String vertexShaderFileName,
-                   String fragmentShaderFileName) throws InitializationException {
+    private Program(String vertexShaderFileName, String fragmentShaderFileName) throws InitializationException {
         int[] shaderCompileStatusIntegers = new int[2];
         int[] shaderLinkStatusIntegers = new int[1];
         int vertexShader;
@@ -181,8 +210,7 @@ public final class Program {
 
     }
 
-    private static int
-    _getMaxGenericAttributes() {
+    private static int getMaxGAsCount() {
         if (_maxGenericAttributes == -1) {
             int[] maxAttribs = new int[1];
             glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, maxAttribs, 0);
@@ -192,42 +220,29 @@ public final class Program {
         return _maxGenericAttributes;
     }
 
-    public List<Uniform>
-    getDefinedUniforms(DefinedUniformType definedUniformType) {
-        if (cachedDefinedUniforms == null)
-            cachedDefinedUniforms = new EnumMap<DefinedUniformType, List<Uniform>>(DefinedUniformType.class);
-
-        if (!cachedDefinedUniforms.containsKey(definedUniformType)) {
-            List<Uniform> requestedUniformsArrayList = new ArrayList<>();
-
-            for (Map.Entry<DefinedUniformType, VariableReferenceable.VariableMatcher> entry : this.definedUniforms.entrySet()) {
-                if (entry.getKey() == definedUniformType) {
-                    for (Uniform uniform : uniforms) {
-                        if (entry.getValue().matches(uniform)) {
-                            requestedUniformsArrayList.add(uniform);
-                        }
-                    }
-                }
-            }
-
-            cachedDefinedUniforms.put(definedUniformType, requestedUniformsArrayList);
-        }
-
-        return cachedDefinedUniforms.get(definedUniformType);
+    public List<Uniform> getDefinedUniform(DefinedUniformType definedUniformType) {
+        if (definedUniforms.containsKey(definedUniformType))
+            return definedUniforms.get(definedUniformType);
+        else
+            return new ArrayList<>();
     }
 
-    void
-    bind() {
+    public List<AttributeReference> getDefinedAttributes(DefinedAttributeType definedAttributeType) {
+        if (definedAttributes.containsKey(definedAttributeType))
+            return definedAttributes.get(definedAttributeType);
+        else
+            return new ArrayList<>();
+    }
+
+    void bind() {
         glUseProgram(id);
     }
 
-    void
-    unbind() {
+    void unbind() {
         glUseProgram(0);
     }
 
-    private void
-    inflateUniforms(String shaderSource) throws InitializationException {
+    private void inflateUniforms(String shaderSource) throws InitializationException {
         Matcher uniformMatcher = null;
 
         Scanner scanner = new Scanner(shaderSource);
@@ -285,8 +300,7 @@ public final class Program {
         scanner.close();
     }
 
-    private void
-    inflateAttributes(String vertexShaderSource) {
+    private void inflateAttributes(String vertexShaderSource) {
         Matcher attributePatternMatcher = null;
 
         Scanner scanner = new Scanner(vertexShaderSource);
@@ -305,24 +319,29 @@ public final class Program {
         scanner.close();
     }
 
-    ArrayList<AttributeReference>
-    getAttributeReferences() {
+    private ArrayList<AttributeReference> getAttributeReferences() {
         return attributes;
     }
 
-    ArrayList<Uniform>
-    getUniforms() {
+    private ArrayList<Uniform> getUniforms() {
         return uniforms;
     }
 
+    //region inner classes
     public enum DefinedUniformType {
         MODEL_MATRIX_UNIFORM,
         VIEW_MATRIX_UNIFORM,
         PROJECTION_MATRIX_UNIFORM,
-        ROTATION_MATRIX_UNIFORM
+        ROTATION_MATRIX_UNIFORM,
+        CUSTOM_UNIFORM,
     }
 
-    //region inner classes
+    public enum DefinedAttributeType {
+        POSITION_ATTRIBUTE,
+        NORMAL_ATTRIBUTE,
+        CUSTOM_ATTRIBUTE
+    }
+
     abstract class ProgramVariableReference implements VariableReferenceable {
         private String _typeName;
         private String _name;
@@ -489,7 +508,7 @@ public final class Program {
         AttributeReference(String typeName, String name) {
             super(typeName, name);
 
-            if (_nextGenericAttributeIndex >= _getMaxGenericAttributes())
+            if (_nextGenericAttributeIndex >= getMaxGAsCount()) // GA: Generic Attribute
                 throw new GLCustomException(glGetError(), "Maximum allowed generic attriubtes allocated!");
 
             _genericVertexAttributeIndex = _nextGenericAttributeIndex;
