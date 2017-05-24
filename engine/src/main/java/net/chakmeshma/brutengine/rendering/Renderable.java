@@ -238,6 +238,8 @@ public interface Renderable {
         void setMesh(Mesh mesh) throws InitializationException {
             this.mesh = mesh;
 
+            this.attributeBufferMapping = mesh.getAttributeBufferMapping();
+
             this._meshSet = true;
         }
 
@@ -247,8 +249,6 @@ public interface Renderable {
 
         void setProgram(Program program) throws InitializationException {
             this.program = program;
-
-            this.attributeBufferMapping = program.getAttributeBufferMapping();
 
             this._programSet = true;
         }

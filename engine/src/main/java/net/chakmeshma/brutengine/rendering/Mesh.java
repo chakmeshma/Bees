@@ -1,7 +1,6 @@
 package net.chakmeshma.brutengine.rendering;
 
 import android.content.Context;
-import android.content.res.AssetFileDescriptor;
 
 import net.chakmeshma.brutengine.development.exceptions.InitializationException;
 import net.chakmeshma.brutengine.development.exceptions.InvalidOperationException;
@@ -27,6 +26,7 @@ import static android.opengl.GLES20.GL_TRIANGLES;
 import static android.opengl.GLES20.glBindBuffer;
 import static android.opengl.GLES20.glBufferData;
 import static android.opengl.GLES20.glGenBuffers;
+import static net.chakmeshma.brutengine.rendering.Renderable.AttributeBufferMapping;
 
 
 public final class Mesh {
@@ -189,6 +189,10 @@ public final class Mesh {
 
     int getPrimitiveAssemblyMode() {
         return GL_TRIANGLES;
+    }
+
+    AttributeBufferMapping getAttributeBufferMapping() {
+
     }
 
     private enum BufferUsageHint {
