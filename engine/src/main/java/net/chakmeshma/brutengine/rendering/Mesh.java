@@ -492,7 +492,7 @@ public final class Mesh {
             }
         }
 
-        boolean arrayLoaded(ArrayType arrayType) throws InvalidOperationException {
+        private boolean arrayLoaded(ArrayType arrayType) throws InvalidOperationException {
             switch (arrayType) {
                 case FACE_VERTEX_GEOMETRY_INDEX_ARRAY:
                     return (indicesOfVertices != null && indicesOfVertices.length > 0);
@@ -507,7 +507,7 @@ public final class Mesh {
             throw new InvalidOperationException(String.format("not a valid array type (%s)", arrayType.toString()));
         }
 
-        int getArraySize(ArrayType arrayType) throws InvalidOperationException {
+        private int getArraySize(ArrayType arrayType) throws InvalidOperationException {
             if (!arrayLoaded(arrayType)) {
                 throw new InvalidOperationException(String.format("array not loaded (%s)", arrayType.toString()));
             }
@@ -526,7 +526,7 @@ public final class Mesh {
             return 0;
         }
 
-        short[] getShortArray(ArrayType arrayType) throws InvalidOperationException {
+        private short[] getShortArray(ArrayType arrayType) throws InvalidOperationException {
             if (!arrayLoaded(arrayType))
                 throw new InvalidOperationException(String.format("array not loaded (%s)", arrayType.toString()));
 
@@ -540,7 +540,7 @@ public final class Mesh {
             throw new InvalidOperationException(String.format("not a valid short array type (%s)", arrayType.toString()));
         }
 
-        float[] getFloatArray(ArrayType arrayType) throws InvalidOperationException {
+        private float[] getFloatArray(ArrayType arrayType) throws InvalidOperationException {
             if (!arrayLoaded(arrayType))
                 throw new InvalidOperationException(String.format("array not loaded (%s)", arrayType.toString()));
 
@@ -558,45 +558,11 @@ public final class Mesh {
             return _fileName;
         }
 
-        enum ArrayType {
+        private enum ArrayType {
             VERTEX_GEOMETRY_ARRAY,
             VERTEX_NORMAL_ARRAY,
             FACE_VERTEX_GEOMETRY_INDEX_ARRAY,
             FACE_VERTEX_NORMAL_INDEX_ARRAY
-        }
-    }
-
-    class ARBuffer extends Buffer { // AR: Abstract Renderable
-        private DefinedBufferType definedBufferType;
-        private VertexArrayBuffer delegatedBuffer;
-        private int offset;
-        private int stride;
-
-        ARBuffer(DefinedBufferType definedBufferType, Buffer delegatedBuffer, int bufferOffset, int bufferStride) { // recursive delegation (more abstraction) !?
-            this.definedBufferType = definedBufferType;
-            this.delegatedBuffer = (VertexArrayBuffer) delegatedBuffer;
-            this.offset = bufferOffset;
-            this.stride = bufferStride;
-        }
-
-        DefinedBufferType getBufferType() {
-            return this.definedBufferType;
-        }
-
-        void bind() {
-            this.delegatedBuffer.bind();
-        }
-
-        void unbind() {
-            this.delegatedBuffer.unbind();
-        }
-
-        int getBufferStride() {
-            return this.stride;
-        }
-
-        int getBufferOffset() {
-            return this.offset;
         }
     }
 
@@ -647,6 +613,40 @@ public final class Mesh {
             glBindBuffer(designatedBufferBinding, 0);
         }
 
+    }
+
+    class ARBuffer extends Buffer { // AR: Abstract Renderable
+        private DefinedBufferType definedBufferType;
+        private VertexArrayBuffer delegatedBuffer;
+        private int offset;
+        private int stride;
+
+        ARBuffer(DefinedBufferType definedBufferType, Buffer delegatedBuffer, int bufferOffset, int bufferStride) { // recursive delegation (more abstraction) !?
+            this.definedBufferType = definedBufferType;
+            this.delegatedBuffer = (VertexArrayBuffer) delegatedBuffer;
+            this.offset = bufferOffset;
+            this.stride = bufferStride;
+        }
+
+        DefinedBufferType getBufferType() {
+            return this.definedBufferType;
+        }
+
+        void bind() {
+            this.delegatedBuffer.bind();
+        }
+
+        void unbind() {
+            this.delegatedBuffer.unbind();
+        }
+
+        int getBufferStride() {
+            return this.stride;
+        }
+
+        int getBufferOffset() {
+            return this.offset;
+        }
     }
 
     private final class VertexArrayBuffer extends Buffer {

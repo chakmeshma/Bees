@@ -65,6 +65,8 @@ class CustomGLSurfaceView extends GLSurfaceView {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        final float rotationSpeed = 0.01f;
+
         scaleGestureDetector.onTouchEvent(event);
 
         int action = event.getActionMasked();
@@ -83,9 +85,12 @@ class CustomGLSurfaceView extends GLSurfaceView {
                 float dx = x - lastX;
                 float dy = y - lastY;
 
+                float vectorLength = (float) Math.sqrt((dx * dx) + (dy * dy));
+
                 switch (event.getPointerCount()) {
                     case 1:
-                        renderer.getCamera().rotateCamera(dx, dy, 0.0f);
+                        if (vectorLength > 0.0f)
+                            renderer.getCamera().rotateCamera(vectorLength * rotationSpeed, dy / vectorLength, dx / vectorLength, 0.0f); //reverse x y order if in landscape mode
                         break;
                     case 2:
 
