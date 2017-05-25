@@ -2,14 +2,10 @@ package net.chakmeshma.brutengine.mathematics;
 
 import android.opengl.Matrix;
 
+import net.chakmeshma.brutengine.utilities.MathUtilities;
+
 //TODO add caching
 public class Camera {
-    private static float[] identityMatrix = new float[]{
-            1.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 1.0f, 0.0f,
-            0.0f, 0.0f, 0.0f, 1.0f
-    };
     private float[] projectionMatrix;
     private float[] viewMatrix;
     private float[] viewTranslationMatrix;
@@ -92,20 +88,16 @@ public class Camera {
 
     //region getRatio*
     private synchronized float getWHRatio() {
-        return (((float) viewPortWidth) / ((float) viewPortHeight));
+        return (((float) this.viewPortWidth) / ((float) this.viewPortHeight));
     }
 
     private synchronized float getHWRatio() {
-        return (((float) viewPortHeight) / ((float) viewPortWidth));
+        return (((float) this.viewPortHeight) / ((float) this.viewPortWidth));
     }
     //endregion
 
-    private synchronized void computeProjectionMatrix() {
-        Matrix.perspectiveM(projectionMatrix, 0, this.fovy, getWHRatio(), this.near, this.far);
-    }
-
-    private synchronized void computeViewMatrix() {
-        Matrix.multiplyMM(viewMatrix, 0, viewRotationMatrix, 0, viewTranslationMatrix, 0);
+    public synchronized float[] getRotationMatrix() {
+        return this.viewRotationMatrix;
     }
 
     public void rotateCamera(float dEulerRotationX, float dEulerRotationY, float dEulerRotationZ) {
@@ -126,15 +118,19 @@ public class Camera {
         computeViewMatrix();
     }
 
-    private synchronized void computeViewRotationMatrix() {
-        Matrix.setRotateEulerM(viewRotationMatrix, 0, this.eulerRotationX, this.eulerRotationY, this.eulerRotationZ);
+    private synchronized void computeViewMatrix() {
+        Matrix.multiplyMM(this.viewMatrix, 0, this.viewRotationMatrix, 0, this.viewTranslationMatrix, 0);
     }
 
-    public synchronized float[] getRotationMatrix() {
-        return this.viewRotationMatrix;
+    private synchronized void computeProjectionMatrix() {
+        Matrix.perspectiveM(this.projectionMatrix, 0, this.fovy, getWHRatio(), this.near, this.far);
+    }
+
+    private synchronized void computeViewRotationMatrix() {
+        Matrix.setRotateEulerM(this.viewRotationMatrix, 0, this.eulerRotationX, this.eulerRotationY, this.eulerRotationZ);
     }
 
     private synchronized void computeViewTranslationMatrix() {
-        Matrix.translateM(viewTranslationMatrix, 0, identityMatrix, 0, 0.0f, 0.0f, -this.distance);
+        Matrix.translateM(this.viewTranslationMatrix, 0, MathUtilities.identityMatrix, 0, -this.focusPointX, -this.focusPointY, -this.focusPointZ - this.distance);
     }
 }

@@ -5,6 +5,13 @@ package net.chakmeshma.brutengine.utilities;
  */
 
 public class MathUtilities {
+    public static final float[] identityMatrix = new float[]{
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+    };
+
     public static boolean isNumberSquare(int number) {
         double sqrt = Math.sqrt(number);
         int x = (int) sqrt;

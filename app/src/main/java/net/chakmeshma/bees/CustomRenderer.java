@@ -144,7 +144,7 @@ class CustomRenderer implements Renderer {
         meshes[0] = new Mesh(objFiles[0], meshStepLoadListener);
         //endregion
 
-        renderables[0] = new SimpleRenderable(brutProgram, meshes[0], new Transform(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f), camera);
+        renderables[0] = new SimpleRenderable(brutProgram, meshes[0], new Transform(1.0f, -0.3f, -10.0f, 0.0f, 0.0f, 0.0f), camera);
     }
     //endregion
 

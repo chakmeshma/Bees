@@ -2,6 +2,8 @@ package net.chakmeshma.brutengine.mathematics;
 
 import android.opengl.Matrix;
 
+import net.chakmeshma.brutengine.utilities.MathUtilities;
+
 
 //TODO add caching
 public class Transform {
@@ -15,9 +17,8 @@ public class Transform {
     private float[] translationMatrix;
     private float[] scaleMatrix;
     private float[] modelMatrix;
-    private float[] identityMatrix;
 
-    public Transform(float pivotX, float pivotY, float pivotZ, float x, float y, float z) {
+    public Transform(float x, float y, float z, float pivotX, float pivotY, float pivotZ) {
         this.pivotX = pivotX;
         this.pivotY = pivotY;
         this.pivotZ = pivotZ;
@@ -75,9 +76,6 @@ public class Transform {
 
         modelMatrix = new float[16];
         Matrix.setIdentityM(modelMatrix, 0);
-
-        identityMatrix = new float[16];
-        Matrix.setIdentityM(identityMatrix, 0);
     }
 
     private synchronized void computeRotationMatrix() {
@@ -85,7 +83,7 @@ public class Transform {
     }
 
     private synchronized void computeModelMatrix() {
-        Matrix.translateM(this.modelMatrix, 0, this.identityMatrix, 0, -this.pivotX, -this.pivotY, -this.pivotZ);
+        Matrix.translateM(this.modelMatrix, 0, MathUtilities.identityMatrix, 0, -this.pivotX, -this.pivotY, -this.pivotZ);
         Matrix.multiplyMM(this.modelMatrix, 0, this.scaleMatrix, 0, this.modelMatrix, 0);
         Matrix.multiplyMM(this.modelMatrix, 0, this.rotationMatrix, 0, this.modelMatrix, 0);
         Matrix.translateM(this.modelMatrix, 0, this.modelMatrix, 0, this.pivotX, this.pivotY, this.pivotZ);
@@ -97,10 +95,10 @@ public class Transform {
     }
 
     private synchronized void computeScaleMatrix() {
-        Matrix.scaleM(this.scaleMatrix, 0, this.identityMatrix, 0, this.scaleX, this.scaleY, this.scaleZ);
+        Matrix.scaleM(this.scaleMatrix, 0, MathUtilities.identityMatrix, 0, this.scaleX, this.scaleY, this.scaleZ);
     }
 
     private synchronized void computeTranslationMatrix() {
-        Matrix.translateM(this.translationMatrix, 0, this.identityMatrix, 0, this.x, this.y, this.z);
+        Matrix.translateM(this.translationMatrix, 0, MathUtilities.identityMatrix, 0, this.x, this.y, this.z);
     }
 }
