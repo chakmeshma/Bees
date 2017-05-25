@@ -1,8 +1,8 @@
 package net.chakmeshma.brutengine.utilities;
 
-import net.chakmeshma.brutengine.development.exceptions.InvalidAdaptionOperationException;
-
 import static android.opengl.GLES20.GL_FLOAT;
+import static android.opengl.GLES20.GL_INT;
+import static android.opengl.GLES20.GL_UNSIGNED_BYTE;
 import static android.opengl.GLES20.GL_UNSIGNED_SHORT;
 
 
@@ -14,11 +14,15 @@ public class GLUtilities {
                 switch (typeClass.toString()) {
                     case "float":
                         return GL_FLOAT;
+                    case "int":
+                        return GL_INT;
                 }
             case GL_DRAW_ELEMENTS__MESH_INDICES_TYPE:
                 switch (typeClass.toString()) {
                     case "short":
                         return GL_UNSIGNED_SHORT;
+                    case "byte":
+                        return GL_UNSIGNED_BYTE;
                 }
         }
 

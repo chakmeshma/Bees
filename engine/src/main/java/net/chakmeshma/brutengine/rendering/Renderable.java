@@ -44,8 +44,8 @@ public interface Renderable {
         private Program program;
         private Transform transform;
         private Camera camera;
-        private Map<Program.AttributeReference, Mesh.ARBuffer> attributeBufferMap;
-        private Map<Program.Uniform, UniformSetter> uniformsMap;
+        private Map<Program.AttributeReference, Mesh.ARBuffer> attributeARBufferMap;
+        private Map<Program.Uniform, UniformSetter> uniformSetterMap;
 
         {
             uniformLinkMap = new EnumMap<>(Program.DefinedUniformType.class);
@@ -115,25 +115,29 @@ public interface Renderable {
         }
 
         private void link() {
-            this.attributeBufferMap = new HashMap<Program.AttributeReference, Mesh.ARBuffer>();
+            this.attributeARBufferMap = new HashMap<Program.AttributeReference, Mesh.ARBuffer>();
 
             for (Program.DefinedAttributeType definedAttributeType : Program.DefinedAttributeType.values()) {
-                for (Program.AttributeReference attributeReference : program.getDefinedAttributes(definedAttributeType)) {
+                Program.AttributeReference attributeReference = program.getDefinedAttribute(definedAttributeType);
+
+                if (attributeReference != null) {
                     for (Mesh.ARBuffer arBuffer : mesh.getARBuffers()) {
                         if (arBuffer.getBufferType() == attributeLinkMap.get(definedAttributeType)) {
-                            this.attributeBufferMap.put(attributeReference, arBuffer);
+                            this.attributeARBufferMap.put(attributeReference, arBuffer);
                             break;
                         }
                     }
                 }
             }
 
-            this.uniformsMap = new HashMap<>();
+            this.uniformSetterMap = new HashMap<>();
 
             for (Program.DefinedUniformType definedUniformType : Program.DefinedUniformType.values()) {
-                for (Program.Uniform uniform : program.getDefinedUniforms(definedUniformType)) {
+                Program.Uniform uniform = program.getDefinedUniform(definedUniformType);
+
+                if (uniform != null) {
                     if (uniformLinkMap.containsKey(definedUniformType)) {
-                        uniformsMap.put(uniform, uniformLinkMap.get(definedUniformType));
+                        uniformSetterMap.put(uniform, uniformLinkMap.get(definedUniformType));
                     }
                 }
             }
@@ -202,7 +206,7 @@ public interface Renderable {
             //region binding
             program.bind();
 
-            for (Map.Entry<Program.AttributeReference, Mesh.ARBuffer> entry : attributeBufferMap.entrySet()) {
+            for (Map.Entry<Program.AttributeReference, Mesh.ARBuffer> entry : attributeARBufferMap.entrySet()) {
                 Program.AttributeReference attributeReference = entry.getKey();
                 Mesh.ARBuffer arBuffer = entry.getValue();
 
@@ -224,7 +228,7 @@ public interface Renderable {
             //endregion
 
             //region uniforms update
-            for (Map.Entry<Program.Uniform, UniformSetter> entry : uniformsMap.entrySet()) {
+            for (Map.Entry<Program.Uniform, UniformSetter> entry : uniformSetterMap.entrySet()) {
                 Program.Uniform uniform = entry.getKey();
                 UniformSetter uniformSetter = entry.getValue();
 
@@ -243,7 +247,7 @@ public interface Renderable {
             //region unbinding
             mesh.getIndicesBuffer().unbind();
 
-            for (Map.Entry<Program.AttributeReference, Mesh.ARBuffer> entry : attributeBufferMap.entrySet()) {
+            for (Map.Entry<Program.AttributeReference, Mesh.ARBuffer> entry : attributeARBufferMap.entrySet()) {
                 Program.AttributeReference attributeReference = entry.getKey();
                 Mesh.ARBuffer arBuffer = entry.getValue();
                 arBuffer.unbind();

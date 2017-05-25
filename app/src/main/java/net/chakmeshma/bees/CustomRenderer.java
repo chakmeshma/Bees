@@ -125,7 +125,7 @@ class CustomRenderer implements Renderer {
         //region mesh setup
         ObjFile[] objFiles = new ObjFile[1];
 
-        objFiles[0] = new ObjFile(context, "ico.obj");
+        objFiles[0] = new ObjFile("ico.obj");
 
         Mesh[] meshes = new Mesh[1];
 

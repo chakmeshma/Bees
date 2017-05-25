@@ -1,9 +1,8 @@
 package net.chakmeshma.brutengine.rendering;
 
-import android.content.Context;
-
 import net.chakmeshma.brutengine.development.exceptions.InitializationException;
 import net.chakmeshma.brutengine.development.exceptions.InvalidOperationException;
+import net.chakmeshma.brutengine.utilities.AssetsUtilities;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -256,15 +255,15 @@ public final class Mesh {
 
         private String _fileName;
 
-        public ObjFile(Context context, String fileName) throws InitializationException {
-            this(context, fileName, null);
+        public ObjFile(String fileName) throws InitializationException {
+            this(fileName, null);
         }
 
-        public ObjFile(Context context, String fileName, StepLoadListener stepLoadListener) throws InitializationException {
+        public ObjFile(String fileName, StepLoadListener stepLoadListener) throws InitializationException {
             InputStream fileIn = null;
             int totalFileSize = 0;
             try {
-                fileIn = context.getAssets().open(fileName);
+                fileIn = AssetsUtilities.openAssetFileInputStream(fileName);
             } catch (IOException e) {
                 throw new InitializationException(String.format("Couldn't load model file (%s)", fileName));
             }

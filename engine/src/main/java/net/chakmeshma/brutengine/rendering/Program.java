@@ -4,12 +4,11 @@ import net.chakmeshma.brutengine.development.exceptions.GLCustomException;
 import net.chakmeshma.brutengine.development.exceptions.GLCustomShaderException;
 import net.chakmeshma.brutengine.development.exceptions.InitializationException;
 import net.chakmeshma.brutengine.development.exceptions.InvalidOperationException;
-import net.chakmeshma.brutengine.utilities.AssetFileReader;
+import net.chakmeshma.brutengine.utilities.AssetsUtilities;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.EnumMap;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.regex.Matcher;
@@ -69,8 +68,8 @@ public final class Program {
     private int id;
     private ArrayList<AttributeReference> attributes;
     private ArrayList<Uniform> uniforms;
-    private Map<DefinedUniformType, List<Uniform>> definedUniforms;
-    private Map<DefinedAttributeType, List<AttributeReference>> definedAttributes;
+    private Map<DefinedUniformType, Uniform> definedUniforms;
+    private Map<DefinedAttributeType, AttributeReference> definedAttributes;
 
     public Program(String vertexShaderFileName, String fragmentShaderFileName,
                    Map<DefinedUniformType, VariableReferenceable.VariableMatcher> declaredDefinedUniforms,
@@ -86,28 +85,22 @@ public final class Program {
         }
         //endregion
 
-        this.definedAttributes = new HashMap<>();
+        this.definedAttributes = new EnumMap<>(DefinedAttributeType.class);
 
         for (AttributeReference attributeReference : attributes) {
             for (DefinedAttributeType definedAttributeType : declaredDefinedAttributes.keySet()) {
                 if (declaredDefinedAttributes.get(definedAttributeType).matches(attributeReference)) {
-                    if (!this.definedAttributes.containsKey(definedAttributeType))
-                        this.definedAttributes.put(definedAttributeType, new ArrayList<AttributeReference>());
-
-                    this.definedAttributes.get(definedAttributeType).add(attributeReference);
+                    this.definedAttributes.put(definedAttributeType, attributeReference);
                 }
             }
         }
 
-        this.definedUniforms = new HashMap<>();
+        this.definedUniforms = new EnumMap<>(DefinedUniformType.class);
 
         for (Uniform uniform : uniforms) {
             for (DefinedUniformType definedUniformType : declaredDefinedUniforms.keySet()) {
                 if (declaredDefinedUniforms.get(definedUniformType).matches(uniform)) {
-                    if (!this.definedUniforms.containsKey(definedUniformType))
-                        this.definedUniforms.put(definedUniformType, new ArrayList<Uniform>());
-
-                    this.definedUniforms.get(definedUniformType).add(uniform);
+                    this.definedUniforms.put(definedUniformType, uniform);
                 }
             }
         }
@@ -132,7 +125,7 @@ public final class Program {
         fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 
         try {
-            vertexShaderSource = AssetFileReader.getSingleton().getAssetFileAsString(vertexShaderFileName);
+            vertexShaderSource = AssetsUtilities.getAssetFileAsString(vertexShaderFileName);
         } catch (IOException e) {
             throw new InitializationException(e.getMessage());
         }
@@ -140,7 +133,7 @@ public final class Program {
         glShaderSource(vertexShader, vertexShaderSource);
 
         try {
-            fragmentShaderSource = AssetFileReader.getSingleton().getAssetFileAsString(fragmentShaderFileName);
+            fragmentShaderSource = AssetsUtilities.getAssetFileAsString(fragmentShaderFileName);
         } catch (IOException e) {
             throw new InitializationException(e.getMessage());
         }
@@ -220,18 +213,18 @@ public final class Program {
         return _maxGenericAttributes;
     }
 
-    public List<Uniform> getDefinedUniforms(DefinedUniformType definedUniformType) {
+    public Uniform getDefinedUniform(DefinedUniformType definedUniformType) {
         if (definedUniforms.containsKey(definedUniformType))
             return definedUniforms.get(definedUniformType);
         else
-            return new ArrayList<>();
+            return null;
     }
 
-    public List<AttributeReference> getDefinedAttributes(DefinedAttributeType definedAttributeType) {
+    public AttributeReference getDefinedAttribute(DefinedAttributeType definedAttributeType) {
         if (definedAttributes.containsKey(definedAttributeType))
             return definedAttributes.get(definedAttributeType);
         else
-            return new ArrayList<>();
+            return null;
     }
 
     void bind() {

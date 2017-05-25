@@ -254,7 +254,7 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private void init() throws InitializationException {
-        Engine.init(this);
+        Engine.initContext(this);
 
         initializationStarted = true;
 
@@ -594,7 +594,7 @@ public class GameActivity extends AppCompatActivity {
 
 
 //                float dpFontSize = GeneralUtilities.pxToDP(this, 0.01f * getScaleReferenceNumber(), true);
-                float dpFontSize = GeneralUtilities.pxToDp(this, Math.round(0.03f * getScaleReferenceNumber()));
+                float dpFontSize = GeneralUtilities.pxToDp(Math.round(0.03f * getScaleReferenceNumber()));
 
                 lineDataSet.setValueFormatter(valueFormatter);
 
