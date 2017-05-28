@@ -13,7 +13,7 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name=".GameActivity"
+            android:name=".CustomActivity"
             android:noHistory="true"
             android:screenOrientation="landscape">
             <intent-filter>

@@ -28,41 +28,64 @@ import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.github.mikephil.charting.utils.ViewPortHandler;
 
 import net.chakmeshma.brutengine.Engine;
+import net.chakmeshma.brutengine.android.GameActivity;
+import net.chakmeshma.brutengine.android.GameRenderer;
+import net.chakmeshma.brutengine.android.SurfaceView;
 import net.chakmeshma.brutengine.development.DebugUtilities;
 import net.chakmeshma.brutengine.development.exceptions.InitializationException;
 import net.chakmeshma.brutengine.development.exceptions.InvalidStackOperationException;
+import net.chakmeshma.brutengine.mathematics.Camera;
+import net.chakmeshma.brutengine.mathematics.Transform;
+import net.chakmeshma.brutengine.rendering.Mesh;
+import net.chakmeshma.brutengine.rendering.Program;
+import net.chakmeshma.brutengine.rendering.Renderable;
+import net.chakmeshma.brutengine.rendering.StepLoadListener;
+import net.chakmeshma.brutengine.rendering.VariableReferenceable;
 import net.chakmeshma.brutengine.utilities.GeneralUtilities;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
+import static android.opengl.GLES20.GL_BACK;
+import static android.opengl.GLES20.GL_BLEND;
+import static android.opengl.GLES20.GL_CULL_FACE;
+import static android.opengl.GLES20.GL_DEPTH_TEST;
+import static android.opengl.GLES20.GL_DITHER;
+import static android.opengl.GLES20.GL_FUNC_ADD;
+import static android.opengl.GLES20.GL_LESS;
+import static android.opengl.GLES20.GL_ONE_MINUS_SRC_ALPHA;
+import static android.opengl.GLES20.GL_SRC_ALPHA;
+import static android.opengl.GLES20.glBlendEquation;
+import static android.opengl.GLES20.glBlendFunc;
+import static android.opengl.GLES20.glClearColor;
+import static android.opengl.GLES20.glCullFace;
+import static android.opengl.GLES20.glDepthFunc;
+import static android.opengl.GLES20.glDisable;
+import static android.opengl.GLES20.glEnable;
+import static android.opengl.GLES20.glFlush;
 import static android.widget.RelativeLayout.CENTER_IN_PARENT;
 import static android.widget.RelativeLayout.TRUE;
 import static net.chakmeshma.brutengine.development.DebugUtilities.FramerateCapture.getCurrentStackSize;
 import static net.chakmeshma.brutengine.development.DebugUtilities.FramerateCapture.popTimestampsAll;
 
-public class GameActivity extends AppCompatActivity {
+public class CustomActivity extends AppCompatActivity implements GameActivity {
     //region fields
-    public static final int MESSAGE_PART_LOADED = 0x00;
-    public static final int MESSAGE_COMPLETE_LOADED = 0x01;
-    public static final int MESSAGE_EXTEND_LOAD_PARTS_COUNT = 0x02;
-    public static final int MESSAGE_BEGIN_INITIALIZATION = 0x03;
-    public static final int MESSAGE_UPDATE_FRAMERATE_TEXT = 0x04;
-    public static final int MESSAGE_UPDATE_TOTAL_FRAMERATE_TEXT = 0x05;
-    public static final int MESSAGE_CLEAR_CHART_ENTRIES = 0x07;
-    public static final int MESSAGE_UPDATE_CHART = 0x08;
-    private static final String MESSAGE_UPDATE_FRAMERATE_TEXT_DATA_KEY = "net.chakmeshma.bees.FRAMERATE_TEXT";
-    private static final int prcChartPadding = 0;
-    private static int LOAD_PART_COUNT = 1;
-    private static volatile int numGLFlushes = 0;
-    private static Handler uiThreadHandler;
     private static Point clientSize = null;
-    private static long[] chartBuffer;
+    private final String MESSAGE_UPDATE_FRAMERATE_TEXT_DATA_KEY = "net.chakmeshma.bees.FRAMERATE_TEXT";
+    private final int prcChartPadding = 0;
+    private int LOAD_PART_COUNT = 1;
+    private volatile int numGLFlushes = 0;
+    private Handler remoteUIThreadHandler;
+    private Handler localUIThreadHandler;
+    private long[] chartBuffer;
     private AppCompatTextView debugTextView;
     private AppCompatTextView debug2TextView;
-    private CustomGLSurfaceView surfaceView;
-    private CustomRenderer renderer;
+    private SurfaceView surfaceView;
+    private GameRenderer renderer;
     private ViewGroup root;
     private ViewGroup loadingFrame;
     private ProgressBar loadingProgressBar;
@@ -81,10 +104,6 @@ public class GameActivity extends AppCompatActivity {
     //endregion
 
     //region dimensions and sizes
-    static int getVerticalSize() {
-        return clientSize.x;
-    }
-
     static int getHorizontalSize() {
         return clientSize.y;
     }
@@ -116,35 +135,63 @@ public class GameActivity extends AppCompatActivity {
     static float getScaleReferenceNumber() {
         return getSmallerSize();
     }
-    //endregion
+
+    int getVerticalSize() {
+        return clientSize.x;
+    }
 
     //region sendMessageToUIThreadHandler
-    public static void sendMessageToUIThreadHandler(int what, int arg1, int arg2) {
-        if (uiThreadHandler != null) {
+    @Override
+    public void sendMessageToUIThreadHandler(UIThreadMessageType what, int arg1, int arg2) {
+        if (remoteUIThreadHandler != null) {
             Message message = Message.obtain();
 
-            message.what = what;
+            message.what = what.ordinal();
             message.arg1 = arg1;
             message.arg2 = arg2;
 
-            uiThreadHandler.sendMessage(message);
+            remoteUIThreadHandler.sendMessage(message);
+        } else
+            throw new RuntimeException("UI thread handler not set");
+    }
+    //endregion
+
+    @Override
+    public void sendMessageToUIThreadHandler(UIThreadMessageType what, int arg1) {
+        sendMessageToUIThreadHandler(what, arg1, 0);
+    }
+
+    @Override
+    public void sendMessageToUIThreadHandler(UIThreadMessageType what) {
+        sendMessageToUIThreadHandler(what, 0, 0);
+    }
+
+    private void sendMessageToUIThreadHandler(ActivityMessageType what, int arg1, int arg2) {
+        if (localUIThreadHandler != null) {
+            Message message = Message.obtain();
+
+            message.what = what.ordinal();
+            message.arg1 = arg1;
+            message.arg2 = arg2;
+
+            localUIThreadHandler.sendMessage(message);
         } else
             throw new RuntimeException("UI thread handler not set");
     }
 
-    public static void sendMessageToUIThreadHandler(int what, int arg1) {
+    private void sendMessageToUIThreadHandler(ActivityMessageType what, int arg1) {
         sendMessageToUIThreadHandler(what, arg1, 0);
     }
 
-    public static void sendMessageToUIThreadHandler(int what) {
+    private void sendMessageToUIThreadHandler(ActivityMessageType what) {
         sendMessageToUIThreadHandler(what, 0, 0);
     }
 
-    public static void sendMessageToUIThreadHandler(int what, Object[] data) {
-        if (uiThreadHandler != null) {
+    private void sendMessageToUIThreadHandler(ActivityMessageType what, Object[] data) {
+        if (localUIThreadHandler != null) {
             Message message = Message.obtain();
 
-            message.what = what;
+            message.what = what.ordinal();
 
             Bundle dataBundle = new Bundle();
 
@@ -167,67 +214,70 @@ public class GameActivity extends AppCompatActivity {
 
             message.setData(dataBundle);
 
-            uiThreadHandler.sendMessage(message);
+            localUIThreadHandler.sendMessage(message);
         } else
             throw new RuntimeException("UI thread handler not set");
     }
-    //endregion
 
-    public static void incrementCountGLFlushes() {
+    @Override
+    public void incrementCountGLFlushes() {
         numGLFlushes++;
     }
+    //endregion
 
     //region initialization
-    private void initUIThreadHandler() {
-        uiThreadHandler = new Handler(Looper.getMainLooper()) {
+    private void initUIThreadHandlers() {
+        remoteUIThreadHandler = new Handler(Looper.getMainLooper()) {
             @Override
             public void handleMessage(Message msg) {
-                switch (msg.what) {
-                    case MESSAGE_PART_LOADED:
-                        int currentProgress = loadingProgressBar.getProgress();
-                        currentProgress += 1;
-                        loadingProgressBar.setProgress(currentProgress);
-                        //root.invalidate();
+                if (msg.what == UIThreadMessageType.MESSAGE_PART_LOADED.ordinal()) {
+                    int currentProgress = loadingProgressBar.getProgress();
+                    currentProgress += 1;
+                    loadingProgressBar.setProgress(currentProgress);
+                    //root.invalidate();
 
-                        if (currentProgress == LOAD_PART_COUNT)
-                            sendMessageToUIThreadHandler(MESSAGE_COMPLETE_LOADED);
-                        break;
-                    case MESSAGE_UPDATE_FRAMERATE_TEXT:
-                        updateFramerateText(msg.getData().getString(MESSAGE_UPDATE_FRAMERATE_TEXT_DATA_KEY));
-                        break;
-                    case MESSAGE_UPDATE_TOTAL_FRAMERATE_TEXT:
-                        updateTotalFramerateText(msg.getData().getString(MESSAGE_UPDATE_FRAMERATE_TEXT_DATA_KEY));
-                        break;
-                    case MESSAGE_COMPLETE_LOADED:
-                        onFinishedLoaded();
-                        break;
-                    case MESSAGE_EXTEND_LOAD_PARTS_COUNT:
-                        int extraPartCount = msg.arg1;
+                    if (currentProgress == LOAD_PART_COUNT)
+                        sendMessageToUIThreadHandler(ActivityMessageType.MESSAGE_COMPLETE_LOADED);
+                } else if (msg.what == UIThreadMessageType.MESSAGE_EXTEND_LOAD_PARTS_COUNT.ordinal()) {
+                    int extraPartCount = msg.arg1;
 
-                        if (msg.arg1 > 0) {
-                            LOAD_PART_COUNT += extraPartCount;
-                            loadingProgressBar.setMax(LOAD_PART_COUNT);
-                        }
-                        break;
-                    case MESSAGE_BEGIN_INITIALIZATION:
-                        try {
-                            if (initializationStarted)
-                                throw new InitializationException("initialization already started!");
+                    if (msg.arg1 > 0) {
+                        LOAD_PART_COUNT += extraPartCount;
+                        loadingProgressBar.setMax(LOAD_PART_COUNT);
+                    }
 
-                            init();
-                        } catch (InitializationException e) {
-                            throw new RuntimeException(e);
-                        }
-                        break;
-                    case MESSAGE_CLEAR_CHART_ENTRIES:
-                        clearChart();
-                        break;
+                }
+            }
+        };
 
-                    case MESSAGE_UPDATE_CHART:
-                        if (chartBuffer != null) {
-                            updateChart(chartBuffer);
-                            chartBuffer = null;
-                        }
+        localUIThreadHandler = new Handler(Looper.getMainLooper()) {
+            @Override
+            public void handleMessage(Message msg) {
+                if (msg.what == ActivityMessageType.MESSAGE_UPDATE_FRAMERATE_TEXT.ordinal()) {
+                    updateFramerateText(msg.getData().getString(MESSAGE_UPDATE_FRAMERATE_TEXT_DATA_KEY));
+                } else if (msg.what == ActivityMessageType.MESSAGE_UPDATE_TOTAL_FRAMERATE_TEXT.ordinal()) {
+                    updateTotalFramerateText(msg.getData().getString(MESSAGE_UPDATE_FRAMERATE_TEXT_DATA_KEY));
+                } else if (msg.what == ActivityMessageType.MESSAGE_COMPLETE_LOADED.ordinal()) {
+                    onFinishedLoaded();
+
+                } else if (msg.what == ActivityMessageType.MESSAGE_BEGIN_INITIALIZATION.ordinal()) {
+                    try {
+                        if (initializationStarted)
+                            throw new InitializationException("initialization already started!");
+
+                        init();
+                    } catch (InitializationException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                } else if (msg.what == ActivityMessageType.MESSAGE_CLEAR_CHART_ENTRIES.ordinal()) {
+                    clearChart();
+
+                } else if (msg.what == ActivityMessageType.MESSAGE_UPDATE_CHART.ordinal()) {
+                    if (chartBuffer != null) {
+                        updateChart(chartBuffer);
+                        chartBuffer = null;
+                    }
                 }
             }
 
@@ -268,8 +318,103 @@ public class GameActivity extends AppCompatActivity {
         initLoadingWaiterThread().start();
         initDebugThread().start();
 
-        surfaceView = new CustomGLSurfaceView(GameActivity.this);
-        renderer = surfaceView.setupRenderer(GameActivity.this);
+        GameRenderer gameRenderer = new GameRenderer() {
+            @Override
+            public void initState() {
+                glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+                glEnable(GL_CULL_FACE);
+                glCullFace(GL_BACK);
+
+                glEnable(GL_BLEND);
+                glBlendEquation(GL_FUNC_ADD);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+                glEnable(GL_DEPTH_TEST);
+                glDepthFunc(GL_LESS);
+
+                glDisable(GL_DITHER);
+
+                glFlush();
+            }
+
+            @Override
+            protected void initDrawables() throws InitializationException {
+                renderables = new ArrayList<>();
+
+                //region program setup
+                Map<Program.DefinedUniformType, VariableReferenceable.VariableMatcher> definedUniforms = new EnumMap<>(Program.DefinedUniformType.class);
+                definedUniforms.put(Program.DefinedUniformType.MODEL_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "modelMatrix"));
+                definedUniforms.put(Program.DefinedUniformType.VIEW_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "viewMatrix"));
+                definedUniforms.put(Program.DefinedUniformType.PROJECTION_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "projectionMatrix"));
+                definedUniforms.put(Program.DefinedUniformType.ROTATION_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat3", "rotationMatrix"));
+
+                Map<Program.DefinedAttributeType, VariableReferenceable.VariableMatcher> definedAttributes = new EnumMap<>(Program.DefinedAttributeType.class);
+                definedAttributes.put(Program.DefinedAttributeType.POSITION_ATTRIBUTE, new VariableReferenceable.VariableMatcher.EqualityMatcher("vec3", "positions"));
+                definedAttributes.put(Program.DefinedAttributeType.NORMAL_ATTRIBUTE, new VariableReferenceable.VariableMatcher.EqualityMatcher("vec3", "normals"));
+
+                Program phongProgram = new Program("phong.vert", "phong.frag", definedUniforms, definedAttributes);
+                //endregion
+
+                float[] cameraFocusPoint = new float[]{0.0f, 10.0f, 0.0f};
+
+                //region theCamera setup
+                theCamera = new Camera(
+                        cameraFocusPoint[0],    // focusX
+                        cameraFocusPoint[1],    // focusY
+                        cameraFocusPoint[2],    // focusZ
+                        100.0f,                 // distance
+                        1.0f,                   // near
+                        10000.0f,                // far
+                        60.0f,                  // fovy
+                        300,                    // viewport width
+                        300);                   // viewport height
+                //endregion
+
+                //region mesh setup
+                StepLoadListener meshStepLoadListener = new StepLoadListener() {
+                    @Override
+                    public void setPartCount(int partCount) {
+                        Engine.context.sendMessageToUIThreadHandler(GameActivity.UIThreadMessageType.MESSAGE_EXTEND_LOAD_PARTS_COUNT, partCount);
+                    }
+
+                    @Override
+                    public void partLoaded() {
+                        Engine.context.sendMessageToUIThreadHandler(GameActivity.UIThreadMessageType.MESSAGE_PART_LOADED);
+                    }
+                };
+
+                Mesh hexahiveMesh = new Mesh(new Mesh.ObjFile("beehive.obj"), meshStepLoadListener);
+                Mesh sphereMarker = new Mesh(new Mesh.ObjFile("ico.obj"), meshStepLoadListener);
+                //endregion
+
+                renderables.add(new Renderable.SimpleRenderable(phongProgram, hexahiveMesh,
+                        new Transform(
+                                0.0f, 0.0f, 0.0f, /////////////////
+                                0.0f, 0.0f, 0.0f, //TRNSFRM MTRX///
+                                0.0f, 0.0f, 0.0f),/////////////////
+                        theCamera));
+
+                for (int i = 0; i < 1000; i++) {
+                    Random random = new Random(System.nanoTime());
+
+                    float x = (float) (random.nextGaussian() * 10.0f) + 100.0f;   ////////////////////
+                    float y = (float) (random.nextGaussian() * 10.0f) + 100.0f;   //VERTEILUNG VCTR///
+                    float z = (float) (random.nextGaussian() * 10.0f) + 100.0f;   ////////////////////
+
+                    renderables.add(new Renderable.SimpleRenderable(phongProgram, sphereMarker, new Transform(
+                            x, y, z,                     //////////////////
+                            10000.0f, 0.0f, 0.0f,        //TRNSFRM MTRX////
+                            0.0f, 0.0f, 0.0f),           //////////////////
+                            theCamera));
+                }
+            }
+        };
+
+        this.renderer = gameRenderer;
+
+        surfaceView = new SurfaceView(gameRenderer);
+
         RelativeLayout.LayoutParams surfaceViewLayoutParams;
         surfaceViewLayoutParams = new RelativeLayout.LayoutParams(getVerticalSize(), getHorizontalSize());
         surfaceViewLayoutParams.addRule(CENTER_IN_PARENT, TRUE);
@@ -278,7 +423,7 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private Thread initLoadingWaiterThread() {
-        Thread loaderThread = new Thread(new Runnable() {
+        return new Thread(new Runnable() {
             long msRefreshStateInterval = 30L;
 
             @Override
@@ -291,12 +436,10 @@ public class GameActivity extends AppCompatActivity {
                     }
                 }
 
-                sendMessageToUIThreadHandler(MESSAGE_PART_LOADED);
+                sendMessageToUIThreadHandler(UIThreadMessageType.MESSAGE_PART_LOADED);
 
             }
         }, "first glFlush waiter thread");
-
-        return loaderThread;
     }
 
     private Thread initDebugThread() {
@@ -326,8 +469,8 @@ public class GameActivity extends AppCompatActivity {
                     }
 
                     if (isChartActive()) {
-                        GameActivity.chartBuffer = Arrays.copyOf(framerates, framerates.length);
-                        sendMessageToUIThreadHandler(MESSAGE_UPDATE_CHART);
+                        chartBuffer = Arrays.copyOf(framerates, framerates.length);
+                        sendMessageToUIThreadHandler(ActivityMessageType.MESSAGE_UPDATE_CHART);
                     }
                     //endregion
 
@@ -378,8 +521,8 @@ public class GameActivity extends AppCompatActivity {
                         }
                     }
 
-                    sendMessageToUIThreadHandler(MESSAGE_UPDATE_FRAMERATE_TEXT, new Long[]{max, mean, min});
-                    sendMessageToUIThreadHandler(MESSAGE_UPDATE_TOTAL_FRAMERATE_TEXT, new Long[]{totalMax, totalMean, totalMin});
+                    sendMessageToUIThreadHandler(ActivityMessageType.MESSAGE_UPDATE_FRAMERATE_TEXT, new Long[]{max, mean, min});
+                    sendMessageToUIThreadHandler(ActivityMessageType.MESSAGE_UPDATE_TOTAL_FRAMERATE_TEXT, new Long[]{totalMax, totalMean, totalMin});
                 }
 
                 //return
@@ -388,23 +531,21 @@ public class GameActivity extends AppCompatActivity {
 
         return debugThread;
     }
-    //endregion
 
-    //region activity overridings
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         initSizes();
         setContentView(R.layout.main_layout);
 
-        initUIThreadHandler();
+        initUIThreadHandlers();
 
         CustomAppCompatImageView splashImage = (CustomAppCompatImageView) findViewById(R.id.loading_splash_imageview);
 
         splashImage.setOnNextDrawOnceCallback(new Runnable() {
             @Override
             public void run() {
-                sendMessageToUIThreadHandler(MESSAGE_BEGIN_INITIALIZATION);
+                sendMessageToUIThreadHandler(ActivityMessageType.MESSAGE_BEGIN_INITIALIZATION);
             }
         });
     }
@@ -446,7 +587,6 @@ public class GameActivity extends AppCompatActivity {
 
         lastBackPressedTimestamp = System.nanoTime();
     }
-    //endregion
 
     //region framerates chart
     private void createFrameratesChart(boolean setVisible) {
@@ -462,7 +602,9 @@ public class GameActivity extends AppCompatActivity {
         chartWidth = availableWidth - padding;
         chartHeight = availableHeight - padding;
 
-        chart = new LineChart(GameActivity.this);
+        float yAxisMax = 1000.0f / 0.4f;
+
+        chart = new LineChart(CustomActivity.this);
         chart.setHardwareAccelerationEnabled(true);
         RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(chartWidth, chartHeight);
         layoutParams.addRule(CENTER_IN_PARENT, TRUE);
@@ -473,13 +615,13 @@ public class GameActivity extends AppCompatActivity {
         YAxis yAxisRight = chart.getAxisRight();
         yAxisLeft.setAxisMinimum(0.0f);
         yAxisRight.setAxisMinimum(0.0f);
-        yAxisLeft.setAxisMaximum(1000.0f / 30.0f);
-        yAxisRight.setAxisMaximum(1000.0f / 30.0f);
+        yAxisLeft.setAxisMaximum(yAxisMax);
+        yAxisRight.setAxisMaximum(yAxisMax);
         Description chartDescription = new Description();
         chartDescription.setEnabled(false);
 
-        chart.setVisibleYRange(0.0f, 1000.0f / 30.0f, YAxis.AxisDependency.LEFT);
-        chart.setVisibleYRange(0.0f, 1000.0f / 30.0f, YAxis.AxisDependency.RIGHT);
+        chart.setVisibleYRange(0.0f, yAxisMax, YAxis.AxisDependency.LEFT);
+        chart.setVisibleYRange(0.0f, yAxisMax, YAxis.AxisDependency.RIGHT);
 
         chart.setDoubleTapToZoomEnabled(false);
         chart.setDescription(chartDescription);
@@ -686,20 +828,6 @@ public class GameActivity extends AppCompatActivity {
         this._chartActive = false;
     }
 
-//    private void killChartThread() {
-//        //        boolean threadKilled = false;
-////
-////        while (!threadKilled) {
-////            try {
-////                chartThread.interrupt();
-////                chartThread.join();
-////                threadKilled = true;
-////            } catch (InterruptedException e) {
-////
-////            }
-////        }
-//    }
-
     boolean isChartLoaded() {
         return this._chartLoaded;
     }
@@ -729,4 +857,15 @@ public class GameActivity extends AppCompatActivity {
 //            chartThread.interrupt();
 //        }
     }
+
+    //region inner classes
+    private enum ActivityMessageType {
+        MESSAGE_BEGIN_INITIALIZATION,
+        MESSAGE_COMPLETE_LOADED,
+        MESSAGE_UPDATE_FRAMERATE_TEXT,
+        MESSAGE_UPDATE_TOTAL_FRAMERATE_TEXT,
+        MESSAGE_CLEAR_CHART_ENTRIES,
+        MESSAGE_UPDATE_CHART
+    }
+    //endregion
 }

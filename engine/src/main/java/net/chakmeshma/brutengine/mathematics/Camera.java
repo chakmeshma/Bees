@@ -22,6 +22,9 @@ public class Camera {
     private float fovy;
     private int viewPortWidth;
     private int viewPortHeight;
+    private float rotationYaw = 0.0f;
+    private float rotationPitch = 0.0f;
+    private float rotationRoll = 0.0f;
 
     public Camera(
             float focusPointX,
@@ -53,6 +56,7 @@ public class Camera {
 
         computeProjectionMatrix();
         computeViewTranslationMatrix();
+        computeViewRotationMatrix();
         computeViewMatrix();
     }
 
@@ -99,14 +103,59 @@ public class Camera {
         return this.viewRotationMatrix;
     }
 
-    public void rotateCamera(float angle, float xRotationAxis, float yRotationAxis, float zRotationAxis) {
-//        this.eulerRotationX += xRotationAxis;
-//        this.eulerRotationY += yRotationAxis;
-//        this.eulerRotationZ += zRotationAxis;
+//    public void rotateCamera(float angle, float xRotationAxis, float yRotationAxis, float zRotationAxis) {
+////        this.eulerRotationX += xRotationAxis;
+////        this.eulerRotationY += yRotationAxis;
+////        this.eulerRotationZ += zRotationAxis;
+//
+//        rotateViewRotationMatrix(-angle, xRotationAxis, yRotationAxis, zRotationAxis);
+//
+//        computeViewMatrix();
+//    }
 
-        rotateViewRotationMatrix(-angle, xRotationAxis, yRotationAxis, zRotationAxis);
+    public synchronized void rotateCamera(float dYaw, float dPitch, float dRoll) {
+        this.rotationYaw += dYaw;       //alpha
+        this.rotationPitch += dPitch;   //beta
+        this.rotationRoll += dRoll;     //gamma
+
+        computeViewRotationMatrix();
 
         computeViewMatrix();
+    }
+
+    private synchronized void computeViewRotationMatrix() {
+        float A = this.rotationPitch;
+        float B = -this.rotationYaw;
+//        float C = this.rotationRoll;
+
+//        viewRotationMatrix[0] = (float) (Math.cos(C) * Math.cos(B) - Math.sin(C) * Math.sin(A) * Math.sin(B));
+//        viewRotationMatrix[1] = (float) (Math.sin(C) * Math.cos(B) + Math.cos(C) * Math.sin(A) * Math.sin(B));
+//        viewRotationMatrix[2] = (float) (-Math.cos(A) * Math.sin(B));
+//        viewRotationMatrix[3] = 0.0f;
+//
+//        viewRotationMatrix[4] = (float) (-Math.sin(C) * Math.cos(A));
+//        viewRotationMatrix[5] = (float) (Math.cos(C) * Math.cos(A));
+//        viewRotationMatrix[6] = (float) Math.sin(A);
+//        viewRotationMatrix[7] = 0.0f;
+//
+//        viewRotationMatrix[8] = (float) (Math.cos(C) * Math.sin(B) + Math.sin(C) * Math.sin(A) * Math.cos(B));
+//        viewRotationMatrix[9] = (float) (Math.sin(C) * Math.sin(B) - Math.cos(C) * Math.sin(A) * Math.cos(B));
+//        viewRotationMatrix[10] = (float) (Math.cos(A) * Math.cos(B));
+//        viewRotationMatrix[11] = 0.0f;
+//
+//        viewRotationMatrix[12] = 0.0f;
+//        viewRotationMatrix[13] = 0.0f;
+//        viewRotationMatrix[14] = 0.0f;
+//        viewRotationMatrix[15] = 1.0f;
+
+        Matrix.setIdentityM(this.viewRotationMatrix, 0);
+
+        Matrix.translateM(this.viewRotationMatrix, 0, this.focusPointX, this.focusPointY, this.focusPointZ);
+
+        Matrix.rotateM(this.viewRotationMatrix, 0, B, 0.0f, 1.0f, 0.0f);
+        Matrix.rotateM(this.viewRotationMatrix, 0, A, 1.0f, 0.0f, 0.0f);
+
+        Matrix.translateM(this.viewRotationMatrix, 0, -this.focusPointX, -this.focusPointY, -this.focusPointZ);
     }
 
     public void zoomCamera(float dDistance) {
@@ -125,10 +174,10 @@ public class Camera {
         Matrix.perspectiveM(this.projectionMatrix, 0, this.fovy, getWHRatio(), this.near, this.far);
     }
 
-    private synchronized void rotateViewRotationMatrix(float angle, float xRotationAxis, float yRotationAxis, float zRotationAxis) {
-//        Matrix.setRotateEulerM(this.viewRotationMatrix, 0, this.eulerRotationX, this.eulerRotationY, this.eulerRotationZ);
-        Matrix.rotateM(this.viewRotationMatrix, 0, -angle, xRotationAxis, yRotationAxis, zRotationAxis);
-    }
+//    private synchronized void rotateViewRotationMatrix(float angle, float xRotationAxis, float yRotationAxis, float zRotationAxis) {
+////        Matrix.setRotateEulerM(this.viewRotationMatrix, 0, this.eulerRotationX, this.eulerRotationY, this.eulerRotationZ);
+//        Matrix.rotateM(this.viewRotationMatrix, 0, -angle, xRotationAxis, yRotationAxis, zRotationAxis);
+//    }
 
     private synchronized void computeViewTranslationMatrix() {
         Matrix.translateM(this.viewTranslationMatrix, 0, MathUtilities.identityMatrix, 0, -this.focusPointX, -this.focusPointY, -this.focusPointZ - this.distance);

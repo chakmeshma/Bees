@@ -1,5 +1,7 @@
 package net.chakmeshma.brutengine.utilities;
 
+import android.content.Context;
+
 import net.chakmeshma.brutengine.Engine;
 
 import java.io.IOException;
@@ -8,9 +10,11 @@ import java.io.InputStream;
 
 public final class AssetsUtilities {
     public static String getAssetFileAsString(String fileName) throws IOException {
+        Context context = (Context) Engine.context;
+
         InputStream inputStream;
 
-        inputStream = Engine.context.getAssets().open(fileName);
+        inputStream = context.getAssets().open(fileName);
 
         int fileLength = inputStream.available();
 
@@ -26,6 +30,8 @@ public final class AssetsUtilities {
     }
 
     public static InputStream openAssetFileInputStream(String fileName) throws IOException {
-        return Engine.context.getAssets().open(fileName);
+        Context context = (Context) Engine.context;
+
+        return context.getAssets().open(fileName);
     }
 }

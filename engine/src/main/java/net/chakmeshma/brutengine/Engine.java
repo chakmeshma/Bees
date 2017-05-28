@@ -1,11 +1,11 @@
 package net.chakmeshma.brutengine;
 
-import android.content.Context;
+import net.chakmeshma.brutengine.android.GameActivity;
 
 public class Engine {
-    public static Context context;
+    public static GameActivity context;
 
-    public static void initContext(Context context) {
+    public static void initContext(GameActivity context) {
         Engine.context = context;
     }
 }

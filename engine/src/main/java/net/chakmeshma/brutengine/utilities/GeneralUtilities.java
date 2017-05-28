@@ -1,5 +1,6 @@
 package net.chakmeshma.brutengine.utilities;
 
+import android.content.Context;
 import android.util.DisplayMetrics;
 
 import net.chakmeshma.brutengine.Engine;
@@ -11,7 +12,9 @@ import net.chakmeshma.brutengine.Engine;
 public final class GeneralUtilities {
 
     public static int pxToDp(int px) {
-        DisplayMetrics displayMetrics = Engine.context.getResources().getDisplayMetrics();
+        Context context = (Context) Engine.context;
+
+        DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
         return Math.round(px / (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
     }
 }

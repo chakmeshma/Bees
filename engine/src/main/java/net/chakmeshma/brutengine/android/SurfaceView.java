@@ -1,4 +1,4 @@
-package net.chakmeshma.bees;
+package net.chakmeshma.brutengine.android;
 
 import android.content.Context;
 import android.graphics.PixelFormat;
@@ -7,55 +7,56 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 
+import net.chakmeshma.brutengine.Engine;
 
-class CustomGLSurfaceView extends GLSurfaceView {
-    private CustomRenderer renderer;
+public class SurfaceView extends GLSurfaceView {
+    private final float rotationSpeed = 0.1f;
+    private final float zoomSpeed = 20f;
+    private GameRenderer renderer;
     private float lastX = Float.NaN;
     private float lastY = Float.NaN;
     private ScaleGestureDetector scaleGestureDetector;
 
     //region initialization/construction
-    public CustomGLSurfaceView(Context context) {
-        super(context);
+    public SurfaceView(GameRenderer renderer) {
+        super((Context) Engine.context);
 
-        init(context);
+        this.renderer = renderer;
+
+        init();
     }
 
-    public CustomGLSurfaceView(Context context, AttributeSet attrs) {
-        super(context, attrs);
+    public SurfaceView(AttributeSet attrs, GameRenderer renderer) {
+        super((Context) Engine.context, attrs);
 
-        init(context);
+        this.renderer = renderer;
+
+        init();
     }
 
-    private void init(Context context) {
+    private void init() {
         setEGLConfigChooser(8, 8, 8, 8, 16, 0);
         getHolder().setFormat(PixelFormat.RGBA_8888);
         getHolder().setFormat(PixelFormat.TRANSLUCENT);
 
         setEGLContextClientVersion(2);
 
-        initDetector(context);
-    }
-
-    public CustomRenderer setupRenderer(Context context) {
-        renderer = new CustomRenderer(context);
-
-        setRenderer(renderer);
+        setRenderer(this.renderer);
 
         setRenderMode(RENDERMODE_CONTINUOUSLY);
 
-        return renderer;
+        initDetector();
     }
 
-    private void initDetector(Context context) {
-        scaleGestureDetector = new ScaleGestureDetector(context, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+    private void initDetector() {
+        scaleGestureDetector = new ScaleGestureDetector((Context) Engine.context, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
             @Override
             public boolean onScale(ScaleGestureDetector detector) {
 
                 float scaleFactor = detector.getScaleFactor() - 1;
-                scaleFactor *= 10.0f;
+                scaleFactor *= SurfaceView.this.zoomSpeed;
 
-                renderer.getCamera().zoomCamera(scaleFactor);
+                renderer.getCamera().zoomCamera(-scaleFactor);
 
                 return true;
             }
@@ -65,8 +66,6 @@ class CustomGLSurfaceView extends GLSurfaceView {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        final float rotationSpeed = 0.01f;
-
         scaleGestureDetector.onTouchEvent(event);
 
         int action = event.getActionMasked();
@@ -90,7 +89,7 @@ class CustomGLSurfaceView extends GLSurfaceView {
                 switch (event.getPointerCount()) {
                     case 1:
                         if (vectorLength > 0.0f)
-                            renderer.getCamera().rotateCamera(vectorLength * rotationSpeed, dy / vectorLength, dx / vectorLength, 0.0f); //reverse x y order if in landscape mode
+                            renderer.getCamera().rotateCamera(dx * rotationSpeed, dy * rotationSpeed, 0.0f); //reverse x y order if in landscape mode
                         break;
                     case 2:
 
@@ -106,7 +105,7 @@ class CustomGLSurfaceView extends GLSurfaceView {
         return true;
     }
 
-    public CustomRenderer getRenderer() {
-        return renderer;
+    public GameRenderer getRenderer() {
+        return this.renderer;
     }
 }

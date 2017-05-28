@@ -18,7 +18,9 @@ public class Transform {
     private float[] scaleMatrix;
     private float[] modelMatrix;
 
-    public Transform(float x, float y, float z, float pivotX, float pivotY, float pivotZ) {
+    public Transform(float x, float y, float z,
+                     float pivotX, float pivotY, float pivotZ,
+                     float eulerRotationX, float eulerRotationY, float eulerRotationZ) {
         this.pivotX = pivotX;
         this.pivotY = pivotY;
         this.pivotZ = pivotZ;
@@ -26,7 +28,7 @@ public class Transform {
         initMatrices();
 
         setTranslation(x, y, z);
-        setEulerRotation(defaultEulerRotation[0], defaultEulerRotation[1], defaultEulerRotation[2]);
+        setEulerRotation(eulerRotationX, eulerRotationY, eulerRotationZ);
         setScale(defaultScale[0], defaultScale[1], defaultScale[2]);
     }
 

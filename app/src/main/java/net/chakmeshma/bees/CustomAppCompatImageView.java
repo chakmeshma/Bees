@@ -51,7 +51,7 @@ public final class CustomAppCompatImageView extends AppCompatImageView {
             float scaleReference;
 
             if (!this.isInEditMode()) {
-                scaleReference = GameActivity.getScaleReferenceNumber();
+                scaleReference = CustomActivity.getScaleReferenceNumber();
             } else {
                 scaleReference = 768;
             }
