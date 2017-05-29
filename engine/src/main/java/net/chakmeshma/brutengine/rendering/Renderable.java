@@ -14,10 +14,6 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
-import static net.chakmeshma.brutengine.utilities.GLUtilities.GLAdaptionRule.GL_DRAW_ELEMENTS__MESH_INDICES_TYPE;
-import static net.chakmeshma.brutengine.utilities.GLUtilities.GLAdaptionRule.GL_VERTEX_ATTRIB_POINTER__ATTRIBUTE_REF_SINGLE_TYPE;
-import static net.chakmeshma.brutengine.utilities.GLUtilities.getGLTypeIdentifier;
-
 
 //  This class is not thread-safe and should only be run by GL-thread.
 public interface Renderable {
@@ -39,7 +35,7 @@ public interface Renderable {
         private boolean _programSet;
         private boolean _transformSet;
         private boolean _cameraSet;
-        private boolean _linked; //is the attribute buffer mapping there
+        private boolean _linked;        //is the attribute buffer mapping there
         private Mesh mesh;
         private Program program;
         private Transform transform;
@@ -217,7 +213,7 @@ public interface Renderable {
                 GLES20.glVertexAttribPointer(
                         attributeReference.getIndex(),
                         attributeReference.getValuesCount(),
-                        getGLTypeIdentifier(attributeReference.getValueType(), GL_VERTEX_ATTRIB_POINTER__ATTRIBUTE_REF_SINGLE_TYPE),
+                        attributeReference.GL_TYPE,
                         false,
                         arBuffer.getBufferStride(),
                         arBuffer.getBufferOffset());
@@ -241,7 +237,7 @@ public interface Renderable {
             //endregion
 
             //region drawing
-            GLES20.glDrawElements(mesh.getPrimitiveAssemblyMode(), mesh.getIndicesCount(), getGLTypeIdentifier(mesh.getIndicesClass(), GL_DRAW_ELEMENTS__MESH_INDICES_TYPE), mesh.getIndicesOffset());
+            GLES20.glDrawElements(mesh.getPrimitiveAssemblyMode(), mesh.getIndicesCount(), mesh.INDICES_GL_TYPE, mesh.getIndicesOffset());
             //endregion
 
             //region unbinding

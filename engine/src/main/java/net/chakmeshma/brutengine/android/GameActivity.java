@@ -14,8 +14,10 @@ public interface GameActivity {
 
     void incrementCountGLFlushes();
 
+    //region inner classes
     enum UIThreadMessageType {
         MESSAGE_PART_LOADED,
         MESSAGE_EXTEND_LOAD_PARTS_COUNT
     }
+    //endregion
 }

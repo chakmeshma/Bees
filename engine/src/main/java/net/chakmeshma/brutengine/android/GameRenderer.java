@@ -24,7 +24,7 @@ import static net.chakmeshma.brutengine.development.DebugUtilities.FramerateCapt
 
 public abstract class GameRenderer implements GLSurfaceView.Renderer {
     private final Object renderingPausedLock = new Object();
-    protected Camera camera;
+    protected Camera theCamera;
     protected List<Renderable> renderables;
     private boolean _renderingPaused = false;
 
@@ -84,14 +84,14 @@ public abstract class GameRenderer implements GLSurfaceView.Renderer {
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         glViewport(0, 0, width, height);
 
-        camera.setViewport(width, height);
+        theCamera.setViewport(width, height);
 
         DebugUtilities.checkAssertGLError("directly after state onSurfaceChanged");
     }
 
     @Override
     public void onDrawFrame(GL10 gl) {
-        if (isRenderingPaused())
+        if (_renderingPaused)
             return;
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -107,12 +107,11 @@ public abstract class GameRenderer implements GLSurfaceView.Renderer {
         glFlush();
         Engine.context.incrementCountGLFlushes();
         pushTimestamp();
-
 //        DebugUtilities.checkAssertGLError("directly after state onDrawFrame");
     }
     //endregion
 
     public Camera getCamera() {
-        return this.camera;
+        return this.theCamera;
     }
 }

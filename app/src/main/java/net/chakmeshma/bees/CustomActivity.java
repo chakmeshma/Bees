@@ -136,7 +136,7 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
         return getSmallerSize();
     }
 
-    int getVerticalSize() {
+    static int getVerticalSize() {
         return clientSize.x;
     }
 
@@ -356,7 +356,7 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                 Program phongProgram = new Program("phong.vert", "phong.frag", definedUniforms, definedAttributes);
                 //endregion
 
-                float[] cameraFocusPoint = new float[]{0.0f, 10.0f, 0.0f};
+                float[] cameraFocusPoint = new float[]{0.0f, 0.0f, 0.0f};
 
                 //region theCamera setup
                 theCamera = new Camera(
@@ -366,7 +366,7 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                         100.0f,                 // distance
                         1.0f,                   // near
                         10000.0f,                // far
-                        60.0f,                  // fovy
+                        100.0f,                  // fovy
                         300,                    // viewport width
                         300);                   // viewport height
                 //endregion
@@ -388,23 +388,16 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                 Mesh sphereMarker = new Mesh(new Mesh.ObjFile("ico.obj"), meshStepLoadListener);
                 //endregion
 
-                renderables.add(new Renderable.SimpleRenderable(phongProgram, hexahiveMesh,
-                        new Transform(
-                                0.0f, 0.0f, 0.0f, /////////////////
-                                0.0f, 0.0f, 0.0f, //TRNSFRM MTRX///
-                                0.0f, 0.0f, 0.0f),/////////////////
-                        theCamera));
-
-                for (int i = 0; i < 1000; i++) {
+                for (int i = 0; i < 100; i++) {
                     Random random = new Random(System.nanoTime());
 
-                    float x = (float) (random.nextGaussian() * 10.0f) + 100.0f;   ////////////////////
-                    float y = (float) (random.nextGaussian() * 10.0f) + 100.0f;   //VERTEILUNG VCTR///
-                    float z = (float) (random.nextGaussian() * 10.0f) + 100.0f;   ////////////////////
+                    float x = (random.nextFloat() * 100.0f) - 50.0f;   /////////////////////
+                    float y = (random.nextFloat() * 100.0f) - 50.0f;   ///VERTEILUNG VCTR///
+                    float z = (random.nextFloat() * 100.0f) - 50.0f;   /////////////////////
 
                     renderables.add(new Renderable.SimpleRenderable(phongProgram, sphereMarker, new Transform(
                             x, y, z,                     //////////////////
-                            10000.0f, 0.0f, 0.0f,        //TRNSFRM MTRX////
+                            0.0f, 0.0f, 0.0f,            ///TRNSFRM MTRX///
                             0.0f, 0.0f, 0.0f),           //////////////////
                             theCamera));
                 }

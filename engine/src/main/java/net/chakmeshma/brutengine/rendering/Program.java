@@ -49,6 +49,8 @@ import static android.opengl.GLES20.glUniformMatrix2fv;
 import static android.opengl.GLES20.glUniformMatrix3fv;
 import static android.opengl.GLES20.glUniformMatrix4fv;
 import static android.opengl.GLES20.glUseProgram;
+import static net.chakmeshma.brutengine.utilities.GLUtilities.GLAdaptionRule.GL_VERTEX_ATTRIB_POINTER__ATTRIBUTE_REF_SINGLE_TYPE;
+import static net.chakmeshma.brutengine.utilities.GLUtilities.getGLTypeIdentifier;
 
 public final class Program {
     //region parsing patterns
@@ -496,6 +498,7 @@ public final class Program {
     }
 
     final class AttributeReference extends ProgramVariableReference {
+        int GL_TYPE;
         private int _genericVertexAttributeIndex = -1;
 
         AttributeReference(String typeName, String name) {
@@ -503,6 +506,8 @@ public final class Program {
 
             if (_nextGenericAttributeIndex >= getMaxGAsCount()) // GA: Generic Attribute
                 throw new GLCustomException(glGetError(), "Maximum allowed generic attriubtes allocated!");
+
+            GL_TYPE = getGLTypeIdentifier(getValueType(), GL_VERTEX_ATTRIB_POINTER__ATTRIBUTE_REF_SINGLE_TYPE);
 
             _genericVertexAttributeIndex = _nextGenericAttributeIndex;
 

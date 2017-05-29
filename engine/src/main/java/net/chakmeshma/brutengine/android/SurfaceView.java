@@ -10,8 +10,8 @@ import android.view.ScaleGestureDetector;
 import net.chakmeshma.brutengine.Engine;
 
 public class SurfaceView extends GLSurfaceView {
-    private final float rotationSpeed = 0.1f;
-    private final float zoomSpeed = 20f;
+    private final float rotationSpeed = -0.1f;
+    private final float zoomSpeed = -200f;
     private GameRenderer renderer;
     private float lastX = Float.NaN;
     private float lastY = Float.NaN;

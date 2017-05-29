@@ -3,6 +3,7 @@ package net.chakmeshma.brutengine.rendering;
 import net.chakmeshma.brutengine.development.exceptions.InitializationException;
 import net.chakmeshma.brutengine.development.exceptions.InvalidOperationException;
 import net.chakmeshma.brutengine.utilities.AssetsUtilities;
+import net.chakmeshma.brutengine.utilities.GLUtilities;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -27,9 +28,11 @@ import static android.opengl.GLES20.GL_TRIANGLES;
 import static android.opengl.GLES20.glBindBuffer;
 import static android.opengl.GLES20.glBufferData;
 import static android.opengl.GLES20.glGenBuffers;
+import static net.chakmeshma.brutengine.utilities.GLUtilities.getGLTypeIdentifier;
 
 
 public final class Mesh {
+    int INDICES_GL_TYPE;
     private boolean hasNormals;
     private int _indicesCount;
     private IndexArrayBuffer _indexArrayBuffer;
@@ -176,6 +179,8 @@ public final class Mesh {
                 this._vertexArrayBuffers[0] = vertexArrayBuffer;///////////HARDCODED
                 this._vertexArrayBuffers[1] = normalArrayBuffer;///////////HARDCODED
             }
+
+            this.INDICES_GL_TYPE = getGLTypeIdentifier(this.getIndicesClass(), GLUtilities.GLAdaptionRule.GL_DRAW_ELEMENTS__MESH_INDICES_TYPE);///////////HARDCODED
 
         } catch (InvalidOperationException e) {
             throw new InitializationException(e.getMessage());
