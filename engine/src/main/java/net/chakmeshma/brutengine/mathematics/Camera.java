@@ -24,19 +24,19 @@ public class Camera {
     private int viewPortHeight;
     private float rotationYaw = 0.0f;
     private float rotationPitch = 0.0f;
-    private float rotationRoll = 0.0f;
+//    private float rotationRoll.
 
     public Camera(
             float focusPointX,
             float focusPointY,
             float focusPointZ,
-//            float eulerRotationX,
-//            float eulerRotationY,
-//            float eulerRotationZ,
             float distance,
             float near,
             float far,
             float fovy,
+            float rotationYaw,
+            float rotationPitch,
+//            float rotationRoll,
             int viewPortWidth,
             int viewPortHeight) {
         this.focusPointX = focusPointX;
@@ -51,6 +51,9 @@ public class Camera {
         this.fovy = fovy;
         this.viewPortWidth = viewPortWidth;
         this.viewPortHeight = viewPortHeight;
+        this.rotationYaw = rotationYaw;
+        this.rotationPitch = rotationPitch;
+//        this.rotationRoll = rotationRoll;
 
         initMatrices();
 
@@ -82,7 +85,7 @@ public class Camera {
         return this.projectionMatrix;
     }
 
-    public void setViewport(int width, int height) {
+    public synchronized void setViewport(int width, int height) {
         this.viewPortWidth = width;
         this.viewPortHeight = height;
 
@@ -103,20 +106,10 @@ public class Camera {
         return this.viewRotationMatrix;
     }
 
-//    public void rotateCamera(float angle, float xRotationAxis, float yRotationAxis, float zRotationAxis) {
-////        this.eulerRotationX += xRotationAxis;
-////        this.eulerRotationY += yRotationAxis;
-////        this.eulerRotationZ += zRotationAxis;
-//
-//        rotateViewRotationMatrix(-angle, xRotationAxis, yRotationAxis, zRotationAxis);
-//
-//        computeViewMatrix();
-//    }
-
-    public synchronized void rotateCamera(float dYaw, float dPitch, float dRoll) {
+    public synchronized void rotateCamera(float dYaw, float dPitch/*, float dRoll*/) {
         this.rotationYaw += dYaw;       //alpha
         this.rotationPitch += dPitch;   //beta
-        this.rotationRoll += dRoll;     //gamma
+//        this.rotationRoll += dRoll;     //gamma
 
         computeViewRotationMatrix();
 
@@ -158,7 +151,7 @@ public class Camera {
         Matrix.translateM(this.viewRotationMatrix, 0, -this.focusPointX, -this.focusPointY, -this.focusPointZ);
     }
 
-    public void zoomCamera(float dDistance) {
+    public synchronized void zoomCamera(float dDistance) {
         this.distance += dDistance;
 
         computeViewTranslationMatrix();
@@ -173,11 +166,6 @@ public class Camera {
     private synchronized void computeProjectionMatrix() {
         Matrix.perspectiveM(this.projectionMatrix, 0, this.fovy, getWHRatio(), this.near, this.far);
     }
-
-//    private synchronized void rotateViewRotationMatrix(float angle, float xRotationAxis, float yRotationAxis, float zRotationAxis) {
-////        Matrix.setRotateEulerM(this.viewRotationMatrix, 0, this.eulerRotationX, this.eulerRotationY, this.eulerRotationZ);
-//        Matrix.rotateM(this.viewRotationMatrix, 0, -angle, xRotationAxis, yRotationAxis, zRotationAxis);
-//    }
 
     private synchronized void computeViewTranslationMatrix() {
         Matrix.translateM(this.viewTranslationMatrix, 0, MathUtilities.identityMatrix, 0, -this.focusPointX, -this.focusPointY, -this.focusPointZ - this.distance);

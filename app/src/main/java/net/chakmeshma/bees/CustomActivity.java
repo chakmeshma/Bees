@@ -340,7 +340,7 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
 
             @Override
             protected void initDrawables() throws InitializationException {
-                renderables = new ArrayList<>();
+                List<Renderable.SimpleRenderable> renderables = new ArrayList<>();
 
                 //region program setup
                 Map<Program.DefinedUniformType, VariableReferenceable.VariableMatcher> definedUniforms = new EnumMap<>(Program.DefinedUniformType.class);
@@ -365,8 +365,10 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                         cameraFocusPoint[2],    // focusZ
                         100.0f,                 // distance
                         1.0f,                   // near
-                        10000.0f,                // far
-                        100.0f,                  // fovy
+                        10000.0f,               // far
+                        100.0f,                 // fovy
+                        0.0f,                   // rotation yaw
+                        0.0f,                   // rotation pitch
                         300,                    // viewport width
                         300);                   // viewport height
                 //endregion
@@ -384,11 +386,11 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                     }
                 };
 
-                Mesh hexahiveMesh = new Mesh(new Mesh.ObjFile("beehive.obj"), meshStepLoadListener);
+//                Mesh hexahiveMesh = new Mesh(new Mesh.ObjFile("beehive.obj"), meshStepLoadListener);
                 Mesh sphereMarker = new Mesh(new Mesh.ObjFile("ico.obj"), meshStepLoadListener);
                 //endregion
 
-                for (int i = 0; i < 100; i++) {
+                for (int i = 0; i < 512; i++) {
                     Random random = new Random(System.nanoTime());
 
                     float x = (random.nextFloat() * 100.0f) - 50.0f;   /////////////////////
@@ -401,6 +403,8 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                             0.0f, 0.0f, 0.0f),           //////////////////
                             theCamera));
                 }
+
+                renderableGroup = new Renderable.SimpleSharedCameraGroupRenderable(renderables);
             }
         };
 

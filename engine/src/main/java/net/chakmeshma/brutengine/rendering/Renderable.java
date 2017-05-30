@@ -10,9 +10,13 @@ import net.chakmeshma.brutengine.development.exceptions.RenderException;
 import net.chakmeshma.brutengine.mathematics.Camera;
 import net.chakmeshma.brutengine.mathematics.Transform;
 
+import java.util.AbstractList;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 //  This class is not thread-safe and should only be run by GL-thread.
@@ -260,5 +264,34 @@ public interface Renderable {
             abstract void set(Program.Uniform uniform) throws InvalidOperationException;
         }
         //endregion
+    }
+
+    class SimpleSharedCameraGroupRenderable implements Renderable {
+        private List<SimpleRenderable> renderables;
+        private Camera unitedCamera;
+
+        public SimpleSharedCameraGroupRenderable(List<SimpleRenderable> renderables) throws InitializationException {
+            this.renderables = renderables;
+
+            Set<Camera> cameraSet = new HashSet<>();
+
+            for(SimpleRenderable renderable : this.renderables) {
+                cameraSet.add(renderable.camera);
+            }
+
+            if(cameraSet.size() != 1)
+                throw new InitializationException(String.format("no united camera! number of cameras: %d", cameraSet.size()));
+
+            this.unitedCamera = (Camera) cameraSet.toArray()[0];
+        }
+
+        @Override
+        public void render() throws RenderException, InitializationException {
+            synchronized (unitedCamera) {
+                for (Renderable renderable : this.renderables) {
+                    renderable.render();
+                }
+            }
+        }
     }
 }

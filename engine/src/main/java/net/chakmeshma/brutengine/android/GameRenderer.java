@@ -9,8 +9,6 @@ import net.chakmeshma.brutengine.development.exceptions.RenderException;
 import net.chakmeshma.brutengine.mathematics.Camera;
 import net.chakmeshma.brutengine.rendering.Renderable;
 
-import java.util.List;
-
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
@@ -25,7 +23,8 @@ import static net.chakmeshma.brutengine.development.DebugUtilities.FramerateCapt
 public abstract class GameRenderer implements GLSurfaceView.Renderer {
     private final Object renderingPausedLock = new Object();
     protected Camera theCamera;
-    protected List<Renderable> renderables;
+    //    protected List<Renderable> renderables;
+    protected Renderable.SimpleSharedCameraGroupRenderable renderableGroup;
     private boolean _renderingPaused = false;
 
     //region initialization/construction
@@ -96,12 +95,11 @@ public abstract class GameRenderer implements GLSurfaceView.Renderer {
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        for (Renderable renderable : renderables) {
-            try {
-                renderable.render();
-            } catch (RenderException | InitializationException e) {
-                throw new RuntimeException(e);
-            }
+
+        try {
+            this.renderableGroup.render();
+        } catch (RenderException | InitializationException e) {
+            throw new RuntimeException(e);
         }
 
         glFlush();

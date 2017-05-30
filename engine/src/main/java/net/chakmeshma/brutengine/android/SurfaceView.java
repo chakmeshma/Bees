@@ -89,7 +89,7 @@ public class SurfaceView extends GLSurfaceView {
                 switch (event.getPointerCount()) {
                     case 1:
                         if (vectorLength > 0.0f)
-                            renderer.getCamera().rotateCamera(dx * rotationSpeed, dy * rotationSpeed, 0.0f); //reverse x y order if in landscape mode
+                            renderer.getCamera().rotateCamera(dx * rotationSpeed, dy * rotationSpeed); //reverse x y order if in landscape mode
                         break;
                     case 2:
 

@@ -276,13 +276,13 @@ public final class DebugUtilities {
             }
         }
 
-        private static int recursiveStackTreeFunction(int depth, int maxDepth, long waitTime) {
+        private static int recursiveStackTreeFunction(int depth, int maxDepth, long nWaitTime) {
             if (depth == maxDepth) {
-                forceSleep(waitTime);
+                forceSleep(nWaitTime);
 
                 return 1;
             } else {
-                return recursiveStackTreeFunction(depth + 1, maxDepth, waitTime);
+                return recursiveStackTreeFunction(depth + 1, maxDepth, nWaitTime);
             }
         }
     }
