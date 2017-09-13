@@ -39,6 +39,8 @@ public interface Renderable {
         private boolean _programSet;
         private boolean _transformSet;
         private boolean _cameraSet;
+        private boolean _hasTexture;
+        private boolean _textureSet;
         private boolean _linked;        //is the attribute buffer mapping there
         private Mesh mesh;
         private Program program;
