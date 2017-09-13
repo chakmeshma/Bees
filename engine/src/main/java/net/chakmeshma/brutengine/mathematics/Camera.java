@@ -2,10 +2,13 @@ package net.chakmeshma.brutengine.mathematics;
 
 import android.opengl.Matrix;
 
+import net.chakmeshma.brutengine.rendering.Renderable;
 import net.chakmeshma.brutengine.utilities.MathUtilities;
 
 //TODO add caching
 public class Camera {
+    public static int lastUploadedProjectionMatrixHash;
+    public static int lastUploadedViewMatrixHash;
     private float[] projectionMatrix;
     private float[] viewMatrix;
     private float[] viewTranslationMatrix;
@@ -24,7 +27,9 @@ public class Camera {
     private int viewPortHeight;
     private float rotationYaw = 0.0f;
     private float rotationPitch = 0.0f;
-//    private float rotationRoll.
+    //    private float rotationRoll.
+    private int projectionMatrixHash;
+    private int viewMatrixHash;
 
     public Camera(
             float focusPointX,
@@ -91,6 +96,7 @@ public class Camera {
 
         computeProjectionMatrix();
     }
+    //endregion
 
     //region getRatio*
     private synchronized float getWHRatio() {
@@ -100,7 +106,6 @@ public class Camera {
     private synchronized float getHWRatio() {
         return (((float) this.viewPortHeight) / ((float) this.viewPortWidth));
     }
-    //endregion
 
     public synchronized float[] getRotationMatrix() {
         return this.viewRotationMatrix;
@@ -149,6 +154,8 @@ public class Camera {
         Matrix.rotateM(this.viewRotationMatrix, 0, A, 1.0f, 0.0f, 0.0f);
 
         Matrix.translateM(this.viewRotationMatrix, 0, -this.focusPointX, -this.focusPointY, -this.focusPointZ);
+
+        Renderable.SimpleRenderable.lastUploadedCombinedRotationMatrixHash++;
     }
 
     public synchronized void zoomCamera(float dDistance) {
@@ -161,13 +168,33 @@ public class Camera {
 
     private synchronized void computeViewMatrix() {
         Matrix.multiplyMM(this.viewMatrix, 0, this.viewTranslationMatrix, 0, this.viewRotationMatrix, 0);
+
+        calculateViewMatrixHash();
     }
 
     private synchronized void computeProjectionMatrix() {
         Matrix.perspectiveM(this.projectionMatrix, 0, this.fovy, getWHRatio(), this.near, this.far);
+
+        calculateProjectionMatrixHash();
+    }
+
+    private void calculateProjectionMatrixHash() {
+        this.projectionMatrixHash = MathUtilities.calculateMatrixHash(projectionMatrix);
+    }
+
+    private void calculateViewMatrixHash() {
+        this.viewMatrixHash = MathUtilities.calculateMatrixHash(viewMatrix);
     }
 
     private synchronized void computeViewTranslationMatrix() {
         Matrix.translateM(this.viewTranslationMatrix, 0, MathUtilities.identityMatrix, 0, -this.focusPointX, -this.focusPointY, -this.focusPointZ - this.distance);
+    }
+
+    public synchronized int getViewMatrixHash() {
+        return this.viewMatrixHash;
+    }
+
+    public synchronized int getProjectionMatrixHash() {
+        return this.projectionMatrixHash;
     }
 }

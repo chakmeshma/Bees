@@ -16,6 +16,7 @@ public class SurfaceView extends GLSurfaceView {
     private float lastX = Float.NaN;
     private float lastY = Float.NaN;
     private ScaleGestureDetector scaleGestureDetector;
+    private Thread timerThread;
 
     //region initialization/construction
     public SurfaceView(GameRenderer renderer) {
@@ -89,7 +90,7 @@ public class SurfaceView extends GLSurfaceView {
                 switch (event.getPointerCount()) {
                     case 1:
                         if (vectorLength > 0.0f)
-                            renderer.getCamera().rotateCamera(dx * rotationSpeed, dy * rotationSpeed); //reverse x y order if in landscape mode
+                            renderer.getCamera().rotateCamera(dx * rotationSpeed, -dy * rotationSpeed); //reverse x y order if in landscape mode
                         break;
                     case 2:
 
@@ -103,9 +104,5 @@ public class SurfaceView extends GLSurfaceView {
         lastY = event.getY();
 
         return true;
-    }
-
-    public GameRenderer getRenderer() {
-        return this.renderer;
     }
 }

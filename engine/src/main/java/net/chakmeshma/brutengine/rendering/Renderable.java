@@ -9,6 +9,7 @@ import net.chakmeshma.brutengine.development.exceptions.InvalidOperationExceptio
 import net.chakmeshma.brutengine.development.exceptions.RenderException;
 import net.chakmeshma.brutengine.mathematics.Camera;
 import net.chakmeshma.brutengine.mathematics.Transform;
+import net.chakmeshma.brutengine.utilities.MathUtilities;
 
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -20,8 +21,9 @@ public interface Renderable {
     void render() throws RenderException, InitializationException;
 
     class SimpleRenderable implements Renderable {
+        public static int lastUploadedCombinedRotationMatrixHash;
         private static EnumMap<Program.DefinedAttributeType, Mesh.DefinedBufferType> attributeLinkMap;
-        private static EnumMap<Program.DefinedUniformType, UniformSetter> uniformLinkMap;
+        private static Map<Program.AttributeReference, Mesh.ARBuffer> attributeARBufferMap;
 
         static {
             attributeLinkMap = new EnumMap<>(Program.DefinedAttributeType.class);
@@ -30,6 +32,8 @@ public interface Renderable {
             attributeLinkMap.put(Program.DefinedAttributeType.NORMAL_ATTRIBUTE, Mesh.DefinedBufferType.NORMALS_BUFFER);
         }
 
+        private EnumMap<Program.DefinedUniformType, UniformSetter> uniformLinkMap;
+        private Map<Program.Uniform, UniformSetter> uniformSetterMap;
         //region sonst
         private boolean _meshSet;
         private boolean _programSet;
@@ -40,8 +44,8 @@ public interface Renderable {
         private Program program;
         private Transform transform;
         private Camera camera;
-        private Map<Program.AttributeReference, Mesh.ARBuffer> attributeARBufferMap;
-        private Map<Program.Uniform, UniformSetter> uniformSetterMap;
+        private float[] combinedRotationMatrix;
+        private int combinedRotationMatrixHash;
 
         {
             uniformLinkMap = new EnumMap<>(Program.DefinedUniformType.class);
@@ -51,6 +55,22 @@ public interface Renderable {
                 public void set(Program.Uniform uniform) throws InvalidOperationException {
                     uniform.setFloatValues(SimpleRenderable.this.transform.getModelMatrix());
                 }
+
+                @Override
+                int getHash() {
+                    return SimpleRenderable.this.transform.getModelMatrixHash();
+                }
+
+                @Override
+                int getLastUploadedHash() {
+                    return Transform.lastUploadedModelMatrixHash;
+                }
+
+                @Override
+                void setLastUploadedHash(int hash) {
+                    Transform.lastUploadedModelMatrixHash = hash;
+                }
+
             });
 
             uniformLinkMap.put(Program.DefinedUniformType.VIEW_MATRIX_UNIFORM, new UniformSetter() {
@@ -58,6 +78,22 @@ public interface Renderable {
                 public void set(Program.Uniform uniform) throws InvalidOperationException {
                     uniform.setFloatValues(SimpleRenderable.this.camera.getViewMatrix());
                 }
+
+                @Override
+                int getHash() {
+                    return SimpleRenderable.this.camera.getViewMatrixHash();
+                }
+
+                @Override
+                int getLastUploadedHash() {
+                    return Camera.lastUploadedViewMatrixHash;
+                }
+
+                @Override
+                void setLastUploadedHash(int hash) {
+                    Camera.lastUploadedViewMatrixHash = hash;
+                }
+
             });
 
             uniformLinkMap.put(Program.DefinedUniformType.PROJECTION_MATRIX_UNIFORM, new UniformSetter() {
@@ -65,6 +101,22 @@ public interface Renderable {
                 public void set(Program.Uniform uniform) throws InvalidOperationException {
                     uniform.setFloatValues(SimpleRenderable.this.camera.getProjectionMatrix());
                 }
+
+                @Override
+                int getHash() {
+                    return SimpleRenderable.this.camera.getProjectionMatrixHash();
+                }
+
+                @Override
+                int getLastUploadedHash() {
+                    return Camera.lastUploadedProjectionMatrixHash;
+                }
+
+                @Override
+                void setLastUploadedHash(int hash) {
+                    Camera.lastUploadedProjectionMatrixHash = hash;
+                }
+
             });
 
             uniformLinkMap.put(Program.DefinedUniformType.ROTATION_MATRIX_UNIFORM, new UniformSetter() {
@@ -72,6 +124,22 @@ public interface Renderable {
                 public void set(Program.Uniform uniform) throws InvalidOperationException {
                     uniform.setFloatValues(SimpleRenderable.this.getCombinedRotationMatrix());
                 }
+
+                @Override
+                int getHash() {
+                    return SimpleRenderable.this.getCombinedRotationMatrixHash();
+                }
+
+                @Override
+                int getLastUploadedHash() {
+                    return lastUploadedCombinedRotationMatrixHash;
+                }
+
+                @Override
+                void setLastUploadedHash(int hash) {
+                    lastUploadedCombinedRotationMatrixHash = hash;
+                }
+
             });
         }
 
@@ -107,11 +175,23 @@ public interface Renderable {
             rotationMatrix[7] = tempMatrix[9];
             rotationMatrix[8] = tempMatrix[10];
 
-            return rotationMatrix;
+            this.combinedRotationMatrix = rotationMatrix;
+
+            calculateCombinedRotationMatrixHash();
+
+            return this.combinedRotationMatrix;
+        }
+
+        private void calculateCombinedRotationMatrixHash() {
+            this.combinedRotationMatrixHash = MathUtilities.calculateMatrixHash(this.combinedRotationMatrix);
+        }
+
+        public int getCombinedRotationMatrixHash() {
+            return combinedRotationMatrixHash;
         }
 
         private void link() {
-            this.attributeARBufferMap = new HashMap<Program.AttributeReference, Mesh.ARBuffer>();
+            attributeARBufferMap = new HashMap<Program.AttributeReference, Mesh.ARBuffer>();
 
             for (Program.DefinedAttributeType definedAttributeType : Program.DefinedAttributeType.values()) {
                 Program.AttributeReference attributeReference = program.getDefinedAttribute(definedAttributeType);
@@ -119,7 +199,7 @@ public interface Renderable {
                 if (attributeReference != null) {
                     for (Mesh.ARBuffer arBuffer : mesh.getARBuffers()) {
                         if (arBuffer.getBufferType() == attributeLinkMap.get(definedAttributeType)) {
-                            this.attributeARBufferMap.put(attributeReference, arBuffer);
+                            attributeARBufferMap.put(attributeReference, arBuffer);
                             break;
                         }
                     }
@@ -228,10 +308,13 @@ public interface Renderable {
                 Program.Uniform uniform = entry.getKey();
                 UniformSetter uniformSetter = entry.getValue();
 
-                try {
-                    uniformSetter.set(uniform);
-                } catch (InvalidOperationException e) {
-                    throw new RenderException(e.getMessage());
+                if (uniformSetter.getHash() != uniformSetter.getLastUploadedHash()) {
+                    try {
+                        uniformSetter.set(uniform);
+                        uniformSetter.setLastUploadedHash(uniformSetter.getHash());
+                    } catch (InvalidOperationException e) {
+                        throw new RenderException(e.getMessage());
+                    }
                 }
             }
             //endregion
@@ -258,6 +341,12 @@ public interface Renderable {
         //region inner classes
         private abstract class UniformSetter {
             abstract void set(Program.Uniform uniform) throws InvalidOperationException;
+
+            abstract int getHash();
+
+            abstract int getLastUploadedHash();
+
+            abstract void setLastUploadedHash(int hash);
         }
         //endregion
     }

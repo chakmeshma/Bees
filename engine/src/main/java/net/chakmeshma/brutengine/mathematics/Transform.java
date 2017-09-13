@@ -2,6 +2,7 @@ package net.chakmeshma.brutengine.mathematics;
 
 import android.opengl.Matrix;
 
+import net.chakmeshma.brutengine.rendering.Renderable;
 import net.chakmeshma.brutengine.utilities.MathUtilities;
 
 
@@ -9,6 +10,7 @@ import net.chakmeshma.brutengine.utilities.MathUtilities;
 public class Transform {
     private static final float[] defaultEulerRotation = new float[]{1.0f, 1.0f, 1.0f};
     private static final float[] defaultScale = new float[]{1.0f, 1.0f, 1.0f};
+    public static int lastUploadedModelMatrixHash;
     private float x, y, z;
     private float eulerRotationX, eulerRotationY, eulerRotationZ;
     private float scaleX, scaleY, scaleZ;
@@ -17,6 +19,7 @@ public class Transform {
     private float[] translationMatrix;
     private float[] scaleMatrix;
     private float[] modelMatrix;
+    private int modelMatrixHash;
 
     public Transform(float x, float y, float z,
                      float pivotX, float pivotY, float pivotZ,
@@ -82,6 +85,8 @@ public class Transform {
 
     private synchronized void computeRotationMatrix() {
         Matrix.setRotateEulerM(this.rotationMatrix, 0, this.eulerRotationX, this.eulerRotationY, this.eulerRotationZ);
+
+        Renderable.SimpleRenderable.lastUploadedCombinedRotationMatrixHash++;
     }
 
     private synchronized void computeModelMatrix() {
@@ -90,6 +95,12 @@ public class Transform {
         Matrix.multiplyMM(this.modelMatrix, 0, this.rotationMatrix, 0, this.modelMatrix, 0);
         Matrix.translateM(this.modelMatrix, 0, this.modelMatrix, 0, this.pivotX, this.pivotY, this.pivotZ);
         Matrix.multiplyMM(this.modelMatrix, 0, this.translationMatrix, 0, this.modelMatrix, 0);
+
+        calculateModelMatrixHash();
+    }
+
+    private void calculateModelMatrixHash() {
+        this.modelMatrixHash = MathUtilities.calculateMatrixHash(modelMatrix);
     }
 
     public synchronized float[] getRotationMatrix() {
@@ -102,5 +113,9 @@ public class Transform {
 
     private synchronized void computeTranslationMatrix() {
         Matrix.translateM(this.translationMatrix, 0, MathUtilities.identityMatrix, 0, this.x, this.y, this.z);
+    }
+
+    public synchronized int getModelMatrixHash() {
+        return modelMatrixHash;
     }
 }

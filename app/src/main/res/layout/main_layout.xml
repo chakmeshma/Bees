@@ -7,6 +7,16 @@
     android:layout_height="match_parent">
 
     <android.support.v7.widget.AppCompatTextView
+        android:id="@+id/viewMatrixDebugTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:background="@color/colorDebugBackground"
+        android:text="Matrix Values"
+        android:textColor="#FF0000" />
+
+    <android.support.v7.widget.AppCompatTextView
         android:id="@+id/debug_textview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

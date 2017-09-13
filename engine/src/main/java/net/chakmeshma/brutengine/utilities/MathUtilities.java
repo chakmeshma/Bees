@@ -21,4 +21,17 @@ public class MathUtilities {
     public static int intSquare(int number) {
         return (int) Math.round(Math.sqrt(number));
     }
+
+    public static int calculateMatrixHash(float[] matrix) {
+        float calculateSum = 0;
+
+        if (matrix == null)
+            return 0;
+
+        for (int i = 0; i < matrix.length; i++) {
+            calculateSum += (matrix[i] * 1000.0f) * (i + 1);
+        }
+
+        return Math.round(calculateSum);
+    }
 }

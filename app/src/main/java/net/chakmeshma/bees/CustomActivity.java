@@ -259,7 +259,8 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                     updateTotalFramerateText(msg.getData().getString(MESSAGE_UPDATE_FRAMERATE_TEXT_DATA_KEY));
                 } else if (msg.what == ActivityMessageType.MESSAGE_COMPLETE_LOADED.ordinal()) {
                     onFinishedLoaded();
-
+                } else if (msg.what == ActivityMessageType.MESSAGE_DEBUG_MATRIX_TEXT_UPDATE.ordinal()) {
+                    updateViewMatrixTextView();
                 } else if (msg.what == ActivityMessageType.MESSAGE_BEGIN_INITIALIZATION.ordinal()) {
                     try {
                         if (initializationStarted)
@@ -297,6 +298,19 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
         };
     }
 
+    private void updateViewMatrixTextView() {
+
+        AppCompatTextView textView = (AppCompatTextView) findViewById(R.id.viewMatrixDebugTextView);
+        if (renderer != null && renderer.getCamera() != null && renderer.getCamera().getViewMatrix() != null) {
+            int matrixHash = renderer.getCamera().getViewMatrixHash();
+            String text = String.valueOf(matrixHash);
+            textView.setText(text);
+        } else {
+            textView.setText("null");
+        }
+
+    }
+
     private void initSizes() {
         Display display = getWindowManager().getDefaultDisplay();
         clientSize = new Point();
@@ -316,7 +330,8 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
         debug2TextView = (AppCompatTextView) findViewById(R.id.debug2_textview);
 
         initLoadingWaiterThread().start();
-        initDebugThread().start();
+        initFrameRateDebugThread().start();
+        initViewMatrixDebugThread().start();
 
         GameRenderer gameRenderer = new GameRenderer() {
             @Override
@@ -340,7 +355,8 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
 
             @Override
             protected void initDrawables() throws InitializationException {
-                List<Renderable.SimpleRenderable> renderables = new ArrayList<>();
+                List<Renderable> renderables = new ArrayList<>();
+
 
                 //region program setup
                 Map<Program.DefinedUniformType, VariableReferenceable.VariableMatcher> definedUniforms = new EnumMap<>(Program.DefinedUniformType.class);
@@ -390,7 +406,7 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                 Mesh sphereMarker = new Mesh(new Mesh.ObjFile("ico.obj"), meshStepLoadListener);
                 //endregion
 
-                for (int i = 0; i < 512; i++) {
+                for (int i = 0; i < 200; i++) {
                     Random random = new Random(System.nanoTime());
 
                     float x = (random.nextFloat() * 100.0f) - 50.0f;   /////////////////////
@@ -404,7 +420,7 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                             theCamera));
                 }
 
-                renderableGroup = new Renderable.SimpleSharedCameraGroupRenderable(renderables);
+                this.renderables = renderables;
             }
         };
 
@@ -417,6 +433,22 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
         surfaceViewLayoutParams.addRule(CENTER_IN_PARENT, TRUE);
         surfaceView.setLayoutParams(surfaceViewLayoutParams);
         root.addView(surfaceView, 0);
+    }
+
+    private Thread initViewMatrixDebugThread() {
+        return new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        Thread.sleep(10L);
+                    } catch (InterruptedException e) {
+
+                    }
+                    sendMessageToUIThreadHandler(ActivityMessageType.MESSAGE_DEBUG_MATRIX_TEXT_UPDATE);
+                }
+            }
+        }, "view matrix debug thread");
     }
 
     private Thread initLoadingWaiterThread() {
@@ -439,8 +471,8 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
         }, "first glFlush waiter thread");
     }
 
-    private Thread initDebugThread() {
-        Thread debugThread = new Thread(new Runnable() {
+    private Thread initFrameRateDebugThread() {
+        Thread frameRateDebugThread = new Thread(new Runnable() {
             long msRefreshFramerateTextInterval = 1000L;                                            //
             long totalMean, totalMin, totalMax, totalSum, totalCount = 0;                           // SAFE TO DO BECAUSE THE THREAD IS NOT USABLE AFTER TERMINATION (AND GETS GCOLLECTED)
 
@@ -524,14 +556,16 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
 
                 //return
             }
-        }, "loader thread");
+        }, "framerate thread");
 
-        return debugThread;
+        return frameRateDebugThread;
     }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+
         initSizes();
         setContentView(R.layout.main_layout);
 
@@ -862,7 +896,8 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
         MESSAGE_UPDATE_FRAMERATE_TEXT,
         MESSAGE_UPDATE_TOTAL_FRAMERATE_TEXT,
         MESSAGE_CLEAR_CHART_ENTRIES,
-        MESSAGE_UPDATE_CHART
+        MESSAGE_UPDATE_CHART,
+        MESSAGE_DEBUG_MATRIX_TEXT_UPDATE,
     }
     //endregion
 }
