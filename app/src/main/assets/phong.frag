@@ -4,7 +4,7 @@ precision mediump float;
 
 varying vec3 normalInterp;
 varying vec3 vertPos;
-varying vec2 uvs;
+varying vec2 vertUV;
 
 //const int mode = 1;
 
@@ -26,9 +26,9 @@ void main() {
 
     if(lambertian > 0.0) {
        float specAngle = max(dot(reflectDir, viewDir), 0.0);
-       specular = pow(specAngle, 4.0);
+       specular = pow(specAngle, 250.0);
     }
-    gl_FragColor = texture2D(textureSampler, uvs);
+    gl_FragColor = vec4(texture2D(textureSampler, vertUV).rgb * lambertian, 1.0) + specular * vec4(specColor, 1.0);
 
 //    // only ambient
 //    if(mode == 2) gl_FragColor = vec4(ambientColor, 1.0);

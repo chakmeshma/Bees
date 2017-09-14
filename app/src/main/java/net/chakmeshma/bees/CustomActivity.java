@@ -381,9 +381,9 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                         cameraFocusPoint[0],    // focusX
                         cameraFocusPoint[1],    // focusY
                         cameraFocusPoint[2],    // focusZ
-                        2.0f,                 // distance
-                        1.0f,                   // near
-                        10000.0f,               // far
+                        0.1f,                 // distance
+                        0.01f,                   // near
+                        100.0f,               // far
                         60.0f,                 // fovy
                         0.0f,                   // rotation yaw
                         0.0f,                   // rotation pitch
@@ -405,11 +405,11 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                 };
 
 //                Mesh hexahiveMesh = new Mesh(new Mesh.ObjFile("beehive.obj"), meshStepLoadListener);
-                Mesh sphereMarker = new Mesh(new Mesh.ObjFile("gun.obj"), meshStepLoadListener);
+                Mesh sphereMarker = new Mesh(new Mesh.ObjFile("mesh.obj"), meshStepLoadListener);
                 //endregion
 
                 //region texture setup
-                Texture texture = new Texture("texture.jpg");
+                Texture texture = new Texture("texture.png");
                 //endregion
 
 //                for (int i = 0; i < 1; i++) {

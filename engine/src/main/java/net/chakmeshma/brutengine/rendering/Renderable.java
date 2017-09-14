@@ -30,6 +30,7 @@ public interface Renderable {
 
             attributeLinkMap.put(Program.DefinedAttributeType.POSITION_ATTRIBUTE, Mesh.DefinedBufferType.POSITIONS_BUFFER);
             attributeLinkMap.put(Program.DefinedAttributeType.NORMAL_ATTRIBUTE, Mesh.DefinedBufferType.NORMALS_BUFFER);
+            attributeLinkMap.put(Program.DefinedAttributeType.UV_ATTRIBUTE, Mesh.DefinedBufferType.UVS_BUFFER);
         }
 
         private EnumMap<Program.DefinedUniformType, UniformSetter> uniformLinkMap;

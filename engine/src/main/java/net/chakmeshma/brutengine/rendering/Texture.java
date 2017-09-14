@@ -33,7 +33,7 @@ public class Texture {
 
         glBindTexture(GL_TEXTURE_2D, textureIDS[0]);
 
-        Bitmap bitmap = AssetsUtilities.getBitmapFromAsset(textureFileName);
+        Bitmap bitmap = AssetsUtilities.getBitmapFromAsset(textureFileName, false);
 
         if (bitmap == null)
             throw new InitializationException("texture file missing!");
