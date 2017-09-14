@@ -8,6 +8,7 @@ uniform mat3 rotationMatrix;
 
 varying vec3 normalInterp;
 varying vec3 vertPos;
+varying vec2 uvs;
 
 void main(){
     mat4 modelview = viewMatrix * modelMatrix;

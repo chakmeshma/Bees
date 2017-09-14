@@ -45,6 +45,7 @@ public interface Renderable {
         private Mesh mesh;
         private Program program;
         private Transform transform;
+        private Texture texture;
         private Camera camera;
         private float[] combinedRotationMatrix;
         private int combinedRotationMatrixHash;
@@ -159,6 +160,49 @@ public interface Renderable {
             setCamera(camera);
         }
 
+        public SimpleRenderable(Program program,
+                                Mesh mesh,
+                                Transform transform,
+                                Texture texture,
+                                Camera camera) throws InitializationException {
+
+            setProgram(program);
+            setMesh(mesh);
+
+            if (!isLinked()) //probably always true (Logikhalber)
+                link();
+
+            setTransform(transform);
+            setCamera(camera);
+            setTexture(texture);
+
+            _hasTexture = true;
+
+            uniformLinkMap.put(Program.DefinedUniformType.TEXTURE_SAMPLER_ID_UNIFORM, new UniformSetter() {
+                @Override
+                void set(Program.Uniform uniform) throws InvalidOperationException {
+                    int[] ids = new int[1];
+                    ids[0] = SimpleRenderable.this.texture.getTextureUnitIndex();
+                    uniform.setIntValues(ids);
+                }
+
+                @Override
+                int getHash() {
+                    return SimpleRenderable.this.texture.getTextureUnitIndex();
+                }
+
+                @Override
+                int getLastUploadedHash() {
+                    return SimpleRenderable.this.texture.getTextureUnitIndex() + 1;
+                }
+
+                @Override
+                void setLastUploadedHash(int hash) {
+
+                }
+            });
+        }
+
         private float[] getCombinedRotationMatrix() {
             float[] tempMatrix = new float[16];
             float[] rotationMatrix = new float[9];
@@ -188,7 +232,7 @@ public interface Renderable {
             this.combinedRotationMatrixHash = MathUtilities.calculateMatrixHash(this.combinedRotationMatrix);
         }
 
-        public int getCombinedRotationMatrixHash() {
+        int getCombinedRotationMatrixHash() {
             return combinedRotationMatrixHash;
         }
 
@@ -224,7 +268,7 @@ public interface Renderable {
         }
 
         boolean isSet() {
-            return _meshSet && _programSet && _transformSet && _cameraSet;
+            return _meshSet && _programSet && _transformSet && _cameraSet && (!_hasTexture || _textureSet);
         }
 
         private void setMesh(Mesh mesh) throws InitializationException {
@@ -253,6 +297,12 @@ public interface Renderable {
             this.camera = camera;
 
             this._cameraSet = true;
+        }
+
+        private void setTexture(Texture texture) {
+            this.texture = texture;
+
+            this._textureSet = true;
         }
 
         private boolean isLinked() {

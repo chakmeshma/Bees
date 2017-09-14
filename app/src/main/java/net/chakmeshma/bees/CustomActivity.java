@@ -40,6 +40,7 @@ import net.chakmeshma.brutengine.rendering.Mesh;
 import net.chakmeshma.brutengine.rendering.Program;
 import net.chakmeshma.brutengine.rendering.Renderable;
 import net.chakmeshma.brutengine.rendering.StepLoadListener;
+import net.chakmeshma.brutengine.rendering.Texture;
 import net.chakmeshma.brutengine.rendering.VariableReferenceable;
 import net.chakmeshma.brutengine.utilities.GeneralUtilities;
 
@@ -48,7 +49,6 @@ import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 import static android.opengl.GLES20.GL_BACK;
 import static android.opengl.GLES20.GL_BLEND;
@@ -364,9 +364,11 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                 definedUniforms.put(Program.DefinedUniformType.VIEW_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "viewMatrix"));
                 definedUniforms.put(Program.DefinedUniformType.PROJECTION_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "projectionMatrix"));
                 definedUniforms.put(Program.DefinedUniformType.ROTATION_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat3", "rotationMatrix"));
+                definedUniforms.put(Program.DefinedUniformType.TEXTURE_SAMPLER_ID_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("sampler2D", "textureSampler"));
 
                 Map<Program.DefinedAttributeType, VariableReferenceable.VariableMatcher> definedAttributes = new EnumMap<>(Program.DefinedAttributeType.class);
                 definedAttributes.put(Program.DefinedAttributeType.POSITION_ATTRIBUTE, new VariableReferenceable.VariableMatcher.EqualityMatcher("vec3", "positions"));
+                definedAttributes.put(Program.DefinedAttributeType.UV_ATTRIBUTE, new VariableReferenceable.VariableMatcher.EqualityMatcher("vec2", "uvs"));
                 definedAttributes.put(Program.DefinedAttributeType.NORMAL_ATTRIBUTE, new VariableReferenceable.VariableMatcher.EqualityMatcher("vec3", "normals"));
 
                 Program phongProgram = new Program("phong.vert", "phong.frag", definedUniforms, definedAttributes);
@@ -379,10 +381,10 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                         cameraFocusPoint[0],    // focusX
                         cameraFocusPoint[1],    // focusY
                         cameraFocusPoint[2],    // focusZ
-                        100.0f,                 // distance
+                        2.0f,                 // distance
                         1.0f,                   // near
                         10000.0f,               // far
-                        100.0f,                 // fovy
+                        60.0f,                 // fovy
                         0.0f,                   // rotation yaw
                         0.0f,                   // rotation pitch
                         300,                    // viewport width
@@ -403,22 +405,38 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                 };
 
 //                Mesh hexahiveMesh = new Mesh(new Mesh.ObjFile("beehive.obj"), meshStepLoadListener);
-                Mesh sphereMarker = new Mesh(new Mesh.ObjFile("ico.obj"), meshStepLoadListener);
+                Mesh sphereMarker = new Mesh(new Mesh.ObjFile("gun.obj"), meshStepLoadListener);
                 //endregion
 
-                for (int i = 0; i < 200; i++) {
-                    Random random = new Random(System.nanoTime());
+                //region texture setup
+                Texture texture = new Texture("texture.jpg");
+                //endregion
 
-                    float x = (random.nextFloat() * 100.0f) - 50.0f;   /////////////////////
-                    float y = (random.nextFloat() * 100.0f) - 50.0f;   ///VERTEILUNG VCTR///
-                    float z = (random.nextFloat() * 100.0f) - 50.0f;   /////////////////////
+//                for (int i = 0; i < 1; i++) {
+//                    Random random = new Random(System.nanoTime());
+//
+//                    float x = (random.nextFloat() * 100.0f) - 50.0f;   /////////////////////
+//                    float y = (random.nextFloat() * 100.0f) - 50.0f;   ///VERTEILUNG VCTR///
+//                    float z = (random.nextFloat() * 100.0f) - 50.0f;   /////////////////////
+//
+//                    renderables.add(new Renderable.SimpleRenderable(phongProgram, sphereMarker, new Transform(
+//                            x, y, z,                     //////////////////
+//                            0.0f, 0.0f, 0.0f,            ///TRNSFRM MTRX///
+//                            0.0f, 0.0f, 0.0f),           //////////////////
+//                            texture,
+//                            theCamera));
+//                }
 
-                    renderables.add(new Renderable.SimpleRenderable(phongProgram, sphereMarker, new Transform(
-                            x, y, z,                     //////////////////
-                            0.0f, 0.0f, 0.0f,            ///TRNSFRM MTRX///
-                            0.0f, 0.0f, 0.0f),           //////////////////
-                            theCamera));
-                }
+                renderables.add(new Renderable.SimpleRenderable(phongProgram, sphereMarker, new Transform(
+                        0.0f,
+                        0.0f,
+                        0.0f,
+                        0.0f,
+                        0.0f,
+                        0.0f,
+                        0.0f,
+                        0.0f,
+                        0.0f), texture, theCamera));
 
                 this.renderables = renderables;
             }

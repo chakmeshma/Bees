@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 
 import static android.opengl.GLES20.GL_COMPILE_STATUS;
 import static android.opengl.GLES20.GL_FALSE;
+import static android.opengl.GLES20.GL_FLOAT;
 import static android.opengl.GLES20.GL_FRAGMENT_SHADER;
 import static android.opengl.GLES20.GL_LINK_STATUS;
 import static android.opengl.GLES20.GL_MAX_VERTEX_ATTRIBS;
@@ -49,8 +50,6 @@ import static android.opengl.GLES20.glUniformMatrix2fv;
 import static android.opengl.GLES20.glUniformMatrix3fv;
 import static android.opengl.GLES20.glUniformMatrix4fv;
 import static android.opengl.GLES20.glUseProgram;
-import static net.chakmeshma.brutengine.utilities.GLUtilities.GLAdaptionRule.GL_VERTEX_ATTRIB_POINTER__ATTRIBUTE_REF_SINGLE_TYPE;
-import static net.chakmeshma.brutengine.utilities.GLUtilities.getGLTypeIdentifier;
 
 public final class Program {
     //region parsing patterns
@@ -328,13 +327,13 @@ public final class Program {
         VIEW_MATRIX_UNIFORM,
         PROJECTION_MATRIX_UNIFORM,
         ROTATION_MATRIX_UNIFORM,
-        CUSTOM_UNIFORM,
+        TEXTURE_SAMPLER_ID_UNIFORM
     }
 
     public enum DefinedAttributeType {
         POSITION_ATTRIBUTE,
         NORMAL_ATTRIBUTE,
-        CUSTOM_ATTRIBUTE
+        UV_ATTRIBUTE
     }
 
     abstract class ProgramVariableReference implements VariableReferenceable {
@@ -507,7 +506,7 @@ public final class Program {
             if (_nextGenericAttributeIndex >= getMaxGAsCount()) // GA: Generic Attribute
                 throw new GLCustomException(glGetError(), "Maximum allowed generic attriubtes allocated!");
 
-            GL_TYPE = getGLTypeIdentifier(getValueType(), GL_VERTEX_ATTRIB_POINTER__ATTRIBUTE_REF_SINGLE_TYPE);
+            GL_TYPE = GL_FLOAT;
 
             _genericVertexAttributeIndex = _nextGenericAttributeIndex;
 
