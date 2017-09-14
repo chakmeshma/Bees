@@ -226,7 +226,7 @@ public final class Mesh {
                     }
 
                     for (int j = 0; j < 2; j++) {
-                        resortedUVs[i * 2 + j] = uvs[uvIndex * 2 + 2];///////////HARDCODED
+                        resortedUVs[i * 2 + j] = uvs[uvIndex * 2 + j];///////////HARDCODED
                     }
 
                     resortedIndices[i] = (short) i;
@@ -279,17 +279,20 @@ public final class Mesh {
                 }
 
                 for (int i = 0; i < indicesCount; i++) {
-                    int geometryIndex = geometryIndices[i];
-                    int normalIndex = normalIndices[i];
-                    int uvIndex = uvIndices[i];
+                    int geometryIndex = 0;
+                    int normalIndex = 0;
+                    int uvIndex = 0;
+                    geometryIndex = geometryIndices[i];
+                    normalIndex = normalIndices[i];
+                    uvIndex = uvIndices[i];
 
                     for (int j = 0; j < 3; j++) {
                         resortedVertices[i * 3 + j] = vertices[geometryIndex * 3 + j];///////////HARDCODED
-                        resortedNormals[i * 3 + j] = normals[normalIndex * 3 + 3];///////////HARDCODED
+                        resortedNormals[i * 3 + j] = normals[normalIndex * 3 + j];///////////HARDCODED
                     }
 
                     for (int j = 0; j < 2; j++) {
-                        resortedUVs[i * 2 + j] = uvs[uvIndex * 2 + 2];///////////HARDCODED
+                        resortedUVs[i * 2 + j] = uvs[uvIndex * 2 + j];///////////HARDCODED
                     }
 
                     resortedIndices[i] = (short) i;
@@ -311,7 +314,7 @@ public final class Mesh {
 
                 this._indicesCount = indicesCount;
                 this._indexArrayBuffer = indexArrayBuffer;
-                this._vertexArrayBuffers = new VertexArrayBuffer[2];///////////HARDCODED
+                this._vertexArrayBuffers = new VertexArrayBuffer[3];///////////HARDCODED
                 this._vertexArrayBuffers[0] = vertexArrayBuffer;///////////HARDCODED
                 this._vertexArrayBuffers[1] = normalArrayBuffer;///////////HARDCODED
                 this._vertexArrayBuffers[2] = uvArrayBuffer;///////////HARDCODED
@@ -457,6 +460,7 @@ public final class Mesh {
                     _v_PatternMatcher.reset(line);
                     _f_PatternMatcher.reset(line);
                     _n_PatternMatcher.reset(line);
+                    _t_PatternMatcher.reset(line);
 
 
                     if (_v_PatternMatcher.matches()) {
