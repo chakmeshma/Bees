@@ -30,6 +30,7 @@ public interface Renderable {
 
             attributeLinkMap.put(Program.DefinedAttributeType.POSITION_ATTRIBUTE, Mesh.DefinedBufferType.POSITIONS_BUFFER);
             attributeLinkMap.put(Program.DefinedAttributeType.NORMAL_ATTRIBUTE, Mesh.DefinedBufferType.NORMALS_BUFFER);
+            attributeLinkMap.put(Program.DefinedAttributeType.UV_ATTRIBUTE, Mesh.DefinedBufferType.UVS_BUFFER);
         }
 
         private EnumMap<Program.DefinedUniformType, UniformSetter> uniformLinkMap;
@@ -370,6 +371,9 @@ public interface Renderable {
                 }
             }
             //endregion
+
+            texture.bind();
+            texture.activateTexture();
 
             //region drawing
             GLES20.glDrawElements(mesh.getPrimitiveAssemblyMode(), mesh.getIndicesCount(), mesh.INDICES_GL_TYPE, mesh.getIndicesOffset());

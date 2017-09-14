@@ -11,7 +11,7 @@ import net.chakmeshma.brutengine.Engine;
 
 public class SurfaceView extends GLSurfaceView {
     private final float rotationSpeed = -0.1f;
-    private final float zoomSpeed = -200f;
+    private final float zoomSpeed = -2f;
     private GameRenderer renderer;
     private float lastX = Float.NaN;
     private float lastY = Float.NaN;

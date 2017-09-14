@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 
 import net.chakmeshma.brutengine.Engine;
 
@@ -38,7 +39,7 @@ public final class AssetsUtilities {
         return context.getAssets().open(fileName);
     }
 
-    public static Bitmap getBitmapFromAsset(String filePath) {
+    public static Bitmap getBitmapFromAsset(String filePath, boolean flipVertically) {
         Context context = (Context) Engine.context;
 
         AssetManager assetManager = context.getAssets();
@@ -52,6 +53,15 @@ public final class AssetsUtilities {
             // handle exception
         }
 
-        return bitmap;
+        if (flipVertically) {
+            Matrix m = new Matrix();
+            m.preScale(1, -1);
+
+            Bitmap flippedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), m, false);
+
+            return flippedBitmap;
+        } else {
+            return bitmap;
+        }
     }
 }

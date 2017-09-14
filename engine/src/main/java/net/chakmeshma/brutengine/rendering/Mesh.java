@@ -221,18 +221,30 @@ public final class Mesh {
                     int geometryIndex = geometryIndices[i];
                     int uvIndex = uvIndices[i];
 
-                    for (int j = 0; j < 3; j++) {
-                        resortedVertices[i * 3 + j] = vertices[geometryIndex * 3 + j];///////////HARDCODED
+                    try {
+                        for (int j = 0; j < 3; j++) {
+                            resortedVertices[i * 3 + j] = vertices[geometryIndex * 3 + j];///////////HARDCODED
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
 
-                    for (int j = 0; j < 2; j++) {
-                        resortedUVs[i * 2 + j] = uvs[uvIndex * 2 + j];///////////HARDCODED
+                    try {
+                        for (int j = 0; j < 2; j++) {
+                            resortedUVs[i * 2 + j] = uvs[uvIndex * 2 + j];///////////HARDCODED
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
 
-                    resortedIndices[i] = (short) i;
+                    try {
+                        resortedIndices[i] = (short) i;
 
-                    if (stepLoadListener != null) {
-                        stepLoadListener.partLoaded();
+                        if (stepLoadListener != null) {
+                            stepLoadListener.partLoaded();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                 }
 
@@ -524,7 +536,7 @@ public final class Mesh {
                                 _vIndicesOfVertices.add((short) (face[2] - 1));
                                 break;
                             case 1:
-                                face = new short[6];
+                                face = new short[9];
 
                                 face6ComponentsPatternMatcher.reset(gp1);
 
@@ -539,47 +551,51 @@ public final class Mesh {
                                     } catch (NumberFormatException e) {
                                         face[1] = 0;
                                     }
-                                    try {
-                                        face[2] = Short.valueOf(face6ComponentsPatternMatcher.group(3));
-                                    } catch (NumberFormatException e) {
-                                        face[2] = 0;
-                                    }
                                 }
 
                                 face6ComponentsPatternMatcher.reset(gp2);
 
                                 if (face6ComponentsPatternMatcher.matches()) {
                                     try {
-                                        face[3] = Short.valueOf(face6ComponentsPatternMatcher.group(1));
+                                        face[2] = Short.valueOf(face6ComponentsPatternMatcher.group(1));
+                                    } catch (NumberFormatException e) {
+                                        face[2] = 0;
+                                    }
+                                    try {
+                                        face[3] = Short.valueOf(face6ComponentsPatternMatcher.group(2));
                                     } catch (NumberFormatException e) {
                                         face[3] = 0;
                                     }
+                                }
+
+                                face6ComponentsPatternMatcher.reset(gp3);
+
+                                if (face6ComponentsPatternMatcher.matches()) {
                                     try {
-                                        face[4] = Short.valueOf(face6ComponentsPatternMatcher.group(2));
+                                        face[4] = Short.valueOf(face6ComponentsPatternMatcher.group(1));
                                     } catch (NumberFormatException e) {
                                         face[4] = 0;
                                     }
                                     try {
-                                        face[5] = Short.valueOf(face6ComponentsPatternMatcher.group(3));
+                                        face[5] = Short.valueOf(face6ComponentsPatternMatcher.group(2));
                                     } catch (NumberFormatException e) {
                                         face[5] = 0;
                                     }
                                 }
 
+
                                 if (face[1] > 0 && face[4] > 0) {
                                     _vIndicesOfUVs.add((short) (face[1] - 1));
-                                    _vIndicesOfUVs.add((short) (face[4] - 1));
+                                    _vIndicesOfUVs.add((short) (face[3] - 1));
+                                    _vIndicesOfUVs.add((short) (face[5] - 1));
                                 }
 
                                 if (face[0] > 0 && face[3] > 0) {
                                     _vIndicesOfVertices.add((short) (face[0] - 1));
-                                    _vIndicesOfVertices.add((short) (face[3] - 1));
+                                    _vIndicesOfVertices.add((short) (face[2] - 1));
+                                    _vIndicesOfVertices.add((short) (face[4] - 1));
                                 }
 
-                                if (face[2] > 0 && face[5] > 0) {
-                                    _vIndicesOfNormals.add((short) (face[2] - 1));
-                                    _vIndicesOfNormals.add((short) (face[5] - 1));
-                                }
                                 break;
                             case 2:
                                 face = new short[9];
