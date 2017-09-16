@@ -46,7 +46,7 @@ public interface Renderable {
         private Mesh mesh;
         private Program program;
         private Transform transform;
-        private Texture texture;
+        private Texture[] textures;
         private Camera camera;
         private float[] combinedRotationMatrix;
         private int combinedRotationMatrixHash;
@@ -145,63 +145,66 @@ public interface Renderable {
                 }
 
             });
-        }
 
-        public SimpleRenderable(Program program,
-                                Mesh mesh,
-                                Transform transform,
-                                Camera camera) throws InitializationException {
-            setProgram(program);
-            setMesh(mesh);
-
-            if (!isLinked()) //probably always true (Logikhalber)
-                link();
-
-            setTransform(transform);
-            setCamera(camera);
-        }
-
-        public SimpleRenderable(Program program,
-                                Mesh mesh,
-                                Transform transform,
-                                Texture texture,
-                                Camera camera) throws InitializationException {
-
-            setProgram(program);
-            setMesh(mesh);
-
-            if (!isLinked()) //probably always true (Logikhalber)
-                link();
-
-            setTransform(transform);
-            setCamera(camera);
-            setTexture(texture);
-
-            _hasTexture = true;
-
-            uniformLinkMap.put(Program.DefinedUniformType.TEXTURE_SAMPLER_ID_UNIFORM, new UniformSetter() {
+            uniformLinkMap.put(Program.DefinedUniformType.TEXTURE_SAMPLER_ID_UNIFORM, new TextureUniformSetter() {
                 @Override
                 void set(Program.Uniform uniform) throws InvalidOperationException {
-                    int[] ids = new int[1];
-                    ids[0] = SimpleRenderable.this.texture.getTextureUnitIndex();
-                    uniform.setIntValues(ids);
+                    if (SimpleRenderable.this.textures != null && SimpleRenderable.this.textures.length > 0 && textureCounter < SimpleRenderable.this.textures.length) {
+                        int[] ids = new int[1];
+                        ids[0] = textureCounter;
+                        uniform.setIntValues(ids);
+
+                        textureCounter++;
+                    }
                 }
 
                 @Override
                 int getHash() {
-                    return SimpleRenderable.this.texture.getTextureUnitIndex();
+                    return 1;
                 }
 
                 @Override
                 int getLastUploadedHash() {
-                    return SimpleRenderable.this.texture.getTextureUnitIndex() + 1;
+                    return 2;
                 }
 
                 @Override
                 void setLastUploadedHash(int hash) {
-
                 }
             });
+        }
+
+        public SimpleRenderable(Program program,
+                                Mesh mesh,
+                                Transform transform,
+                                Camera camera) throws InitializationException {
+            setProgram(program);
+            setMesh(mesh);
+
+            if (!isLinked()) //probably always true (Logikhalber)
+                link();
+
+            setTransform(transform);
+            setCamera(camera);
+        }
+
+        public SimpleRenderable(Program program,
+                                Mesh mesh,
+                                Transform transform,
+                                final Texture[] textures,
+                                Camera camera) throws InitializationException {
+
+            setProgram(program);
+            setMesh(mesh);
+
+            if (!isLinked()) //probably always true (Logikhalber)
+                link();
+
+            setTransform(transform);
+            setCamera(camera);
+            setTextures(textures);
+
+            _hasTexture = true;
         }
 
         private float[] getCombinedRotationMatrix() {
@@ -256,11 +259,13 @@ public interface Renderable {
             this.uniformSetterMap = new HashMap<>();
 
             for (Program.DefinedUniformType definedUniformType : Program.DefinedUniformType.values()) {
-                Program.Uniform uniform = program.getDefinedUniform(definedUniformType);
+                Program.Uniform[] uniforms = program.getDefinedUniforms(definedUniformType);
 
-                if (uniform != null) {
-                    if (uniformLinkMap.containsKey(definedUniformType)) {
-                        uniformSetterMap.put(uniform, uniformLinkMap.get(definedUniformType));
+                if (uniforms != null) {
+                    for (Program.Uniform uniform : uniforms) {
+                        if (uniformLinkMap.containsKey(definedUniformType)) {
+                            uniformSetterMap.put(uniform, uniformLinkMap.get(definedUniformType));
+                        }
                     }
                 }
             }
@@ -300,8 +305,8 @@ public interface Renderable {
             this._cameraSet = true;
         }
 
-        private void setTexture(Texture texture) {
-            this.texture = texture;
+        private void setTextures(Texture[] textures) {
+            this.textures = textures;
 
             this._textureSet = true;
         }
@@ -332,6 +337,15 @@ public interface Renderable {
             }
             //endregion
 
+            //region textures binding
+            if (textures != null && textures.length > 0) {
+                for (int i = 0; i < textures.length; i++) {
+                    GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + i);
+                    textures[i].bind();
+                }
+            }
+            //endregion
+
             //region binding
             program.bind();
 
@@ -356,7 +370,13 @@ public interface Renderable {
             mesh.getIndicesBuffer().bind();
             //endregion
 
+
             //region uniforms update
+            for (Map.Entry<Program.Uniform, UniformSetter> entry : uniformSetterMap.entrySet()) {
+                if (entry.getValue() instanceof TextureUniformSetter)
+                    ((TextureUniformSetter) entry.getValue()).resetCounter();
+            }
+
             for (Map.Entry<Program.Uniform, UniformSetter> entry : uniformSetterMap.entrySet()) {
                 Program.Uniform uniform = entry.getKey();
                 UniformSetter uniformSetter = entry.getValue();
@@ -371,9 +391,6 @@ public interface Renderable {
                 }
             }
             //endregion
-
-            texture.bind();
-            texture.activateTexture();
 
             //region drawing
             GLES20.glDrawElements(mesh.getPrimitiveAssemblyMode(), mesh.getIndicesCount(), mesh.INDICES_GL_TYPE, mesh.getIndicesOffset());
@@ -403,6 +420,14 @@ public interface Renderable {
             abstract int getLastUploadedHash();
 
             abstract void setLastUploadedHash(int hash);
+        }
+
+        private abstract class TextureUniformSetter extends UniformSetter {
+            int textureCounter = 0;
+
+            void resetCounter() {
+                this.textureCounter = 0;
+            }
         }
         //endregion
     }

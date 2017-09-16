@@ -359,12 +359,20 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
 
 
                 //region program setup
-                Map<Program.DefinedUniformType, VariableReferenceable.VariableMatcher> definedUniforms = new EnumMap<>(Program.DefinedUniformType.class);
-                definedUniforms.put(Program.DefinedUniformType.MODEL_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "modelMatrix"));
-                definedUniforms.put(Program.DefinedUniformType.VIEW_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "viewMatrix"));
-                definedUniforms.put(Program.DefinedUniformType.PROJECTION_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "projectionMatrix"));
-                definedUniforms.put(Program.DefinedUniformType.ROTATION_MATRIX_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("mat3", "rotationMatrix"));
-                definedUniforms.put(Program.DefinedUniformType.TEXTURE_SAMPLER_ID_UNIFORM, new VariableReferenceable.VariableMatcher.EqualityMatcher("sampler2D", "textureSampler"));
+                Map<Program.DefinedUniformType, VariableReferenceable.VariableMatcher[]> definedUniforms = new EnumMap<>(Program.DefinedUniformType.class);
+                definedUniforms.put(Program.DefinedUniformType.MODEL_MATRIX_UNIFORM,
+                        new VariableReferenceable.VariableMatcher.EqualityMatcher[]{new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "modelMatrix")});
+                definedUniforms.put(Program.DefinedUniformType.VIEW_MATRIX_UNIFORM,
+                        new VariableReferenceable.VariableMatcher.EqualityMatcher[]{new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "viewMatrix")});
+                definedUniforms.put(Program.DefinedUniformType.PROJECTION_MATRIX_UNIFORM,
+                        new VariableReferenceable.VariableMatcher.EqualityMatcher[]{new VariableReferenceable.VariableMatcher.EqualityMatcher("mat4", "projectionMatrix")});
+                definedUniforms.put(Program.DefinedUniformType.ROTATION_MATRIX_UNIFORM,
+                        new VariableReferenceable.VariableMatcher.EqualityMatcher[]{new VariableReferenceable.VariableMatcher.EqualityMatcher("mat3", "rotationMatrix")});
+                definedUniforms.put(Program.DefinedUniformType.TEXTURE_SAMPLER_ID_UNIFORM,
+                        new VariableReferenceable.VariableMatcher.EqualityMatcher[]{
+                                new VariableReferenceable.VariableMatcher.EqualityMatcher("sampler2D", "diffuseTexture"),
+                                new VariableReferenceable.VariableMatcher.EqualityMatcher("sampler2D", "normalTexture")
+                        });
 
                 Map<Program.DefinedAttributeType, VariableReferenceable.VariableMatcher> definedAttributes = new EnumMap<>(Program.DefinedAttributeType.class);
                 definedAttributes.put(Program.DefinedAttributeType.POSITION_ATTRIBUTE, new VariableReferenceable.VariableMatcher.EqualityMatcher("vec3", "positions"));
@@ -409,7 +417,6 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                 //endregion
 
                 //region texture setup
-                Texture texture = new Texture("texture.png");
                 //endregion
 
 //                for (int i = 0; i < 1; i++) {
@@ -436,7 +443,7 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                         0.0f,
                         0.0f,
                         0.0f,
-                        0.0f), texture, theCamera));
+                        0.0f), new Texture[]{new Texture("texture.png"), new Texture("Normal.png")}, theCamera));
 
                 this.renderables = renderables;
             }

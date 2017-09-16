@@ -69,11 +69,11 @@ public final class Program {
     private int id;
     private ArrayList<AttributeReference> attributes;
     private ArrayList<Uniform> uniforms;
-    private Map<DefinedUniformType, Uniform> definedUniforms;
+    private Map<DefinedUniformType, Uniform[]> definedUniforms;
     private Map<DefinedAttributeType, AttributeReference> definedAttributes;
 
     public Program(String vertexShaderFileName, String fragmentShaderFileName,
-                   Map<DefinedUniformType, VariableReferenceable.VariableMatcher> declaredDefinedUniforms,
+                   Map<DefinedUniformType, VariableReferenceable.VariableMatcher[]> declaredDefinedUniforms,
                    Map<DefinedAttributeType, VariableReferenceable.VariableMatcher> declaredDefinedAttributes) throws InitializationException {
         this(vertexShaderFileName, fragmentShaderFileName);
 
@@ -100,9 +100,32 @@ public final class Program {
 
         for (Uniform uniform : uniforms) {
             for (DefinedUniformType definedUniformType : declaredDefinedUniforms.keySet()) {
-                if (declaredDefinedUniforms.get(definedUniformType).matches(uniform)) {
-                    this.definedUniforms.put(definedUniformType, uniform);
+                ArrayList<Uniform> uniformsList = new ArrayList<Uniform>();
+                for (VariableReferenceable.VariableMatcher matcher : declaredDefinedUniforms.get(definedUniformType)) {
+                    if (matcher.matches(uniform)) {
+                        uniformsList.add(uniform);
+                    }
                 }
+                Uniform[] uniformsArray = new Uniform[uniformsList.size()];
+                for (int i = 0; i < uniformsList.size(); i++)
+                    uniformsArray[i] = uniformsList.get(i);
+
+                if (this.definedUniforms.get(definedUniformType) != null) {
+                    Uniform[] currentArray = this.definedUniforms.get(definedUniformType);
+                    int currentLength = currentArray.length;
+
+                    Uniform[] jointArray = new Uniform[currentLength + uniformsArray.length];
+
+                    for (int i = 0; i < currentLength + uniformsArray.length; i++) {
+                        if (i < currentLength) {
+                            jointArray[i] = currentArray[i];
+                        } else {
+                            jointArray[i] = uniformsArray[i - currentLength];
+                        }
+                    }
+                    this.definedUniforms.put(definedUniformType, jointArray);
+                } else
+                    this.definedUniforms.put(definedUniformType, uniformsArray);
             }
         }
     }
@@ -214,7 +237,7 @@ public final class Program {
         return _maxGenericAttributes;
     }
 
-    public Uniform getDefinedUniform(DefinedUniformType definedUniformType) {
+    public Uniform[] getDefinedUniforms(DefinedUniformType definedUniformType) {
         if (definedUniforms.containsKey(definedUniformType))
             return definedUniforms.get(definedUniformType);
         else
