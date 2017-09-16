@@ -443,7 +443,7 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                         0.0f,
                         0.0f,
                         0.0f,
-                        0.0f), new Texture[]{new Texture("texture.png"), new Texture("Normal.png")}, theCamera));
+                        0.0f), new Texture[]{new Texture("BaseColor.jpg"), new Texture("Normal.jpg")}, theCamera));
 
                 this.renderables = renderables;
             }

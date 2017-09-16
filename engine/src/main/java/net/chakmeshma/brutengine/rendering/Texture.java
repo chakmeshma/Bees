@@ -2,6 +2,7 @@ package net.chakmeshma.brutengine.rendering;
 
 
 import android.graphics.Bitmap;
+import android.opengl.GLES20;
 import android.opengl.GLUtils;
 
 import net.chakmeshma.brutengine.development.exceptions.InitializationException;
@@ -20,10 +21,14 @@ import static android.opengl.GLES20.glTexParameteri;
  */
 
 public class Texture {
+    private static int lastTextureUnitIndex = -1;
     private int textureID;
     private String fileName;
+    private int textureUnitIndex;
 
     public Texture(String textureFileName) throws InitializationException {
+        fileName = textureFileName;
+
         int[] textureIDS = new int[1];
 
         glGenTextures(1, textureIDS, 0);
@@ -45,11 +50,14 @@ public class Texture {
         this.textureID = textureIDS[0];
         this.fileName = textureFileName;
 
+        lastTextureUnitIndex++;
+
+        this.textureUnitIndex = lastTextureUnitIndex;
     }
 
-//    public void activateCorrespondingTextureUnit() {
-//        GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + textureUnitIndex);
-//    }
+    public void activateCorrespondingTextureUnit() {
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + textureUnitIndex);
+    }
 
     public void bind() {
         glBindTexture(GL_TEXTURE_2D, getTextureID());
@@ -61,5 +69,9 @@ public class Texture {
 
     public int getTextureID() {
         return textureID;
+    }
+
+    public int getTextureUnitIndex() {
+        return textureUnitIndex;
     }
 }

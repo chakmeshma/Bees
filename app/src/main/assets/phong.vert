@@ -1,5 +1,8 @@
 #version 100
 
+precision mediump float;
+
+
 attribute vec3 positions;
 attribute vec3 normals;
 attribute vec2 uvs;

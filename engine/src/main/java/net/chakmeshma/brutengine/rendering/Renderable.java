@@ -147,14 +147,13 @@ public interface Renderable {
             });
 
             uniformLinkMap.put(Program.DefinedUniformType.TEXTURE_SAMPLER_ID_UNIFORM, new TextureUniformSetter() {
-                @Override
-                void set(Program.Uniform uniform) throws InvalidOperationException {
-                    if (SimpleRenderable.this.textures != null && SimpleRenderable.this.textures.length > 0 && textureCounter < SimpleRenderable.this.textures.length) {
-                        int[] ids = new int[1];
-                        ids[0] = textureCounter;
-                        uniform.setIntValues(ids);
 
-                        textureCounter++;
+                @Override
+                void setTextureUniform(Program.Uniform uniform, Texture texture) throws InvalidOperationException {
+                    if (texture != null) {
+                        int[] ids = new int[1];
+                        ids[0] = texture.getTextureUnitIndex();
+                        uniform.setIntValues(ids);
                     }
                 }
 
@@ -258,14 +257,12 @@ public interface Renderable {
 
             this.uniformSetterMap = new HashMap<>();
 
-            for (Program.DefinedUniformType definedUniformType : Program.DefinedUniformType.values()) {
-                Program.Uniform[] uniforms = program.getDefinedUniforms(definedUniformType);
+            for (Map.Entry<Program.DefinedUniformType, UniformSetter> entry : uniformLinkMap.entrySet()) {
+                Program.Uniform[] uniforms = program.getDefinedUniforms(entry.getKey());
 
                 if (uniforms != null) {
                     for (Program.Uniform uniform : uniforms) {
-                        if (uniformLinkMap.containsKey(definedUniformType)) {
-                            uniformSetterMap.put(uniform, uniformLinkMap.get(definedUniformType));
-                        }
+                        uniformSetterMap.put(uniform, uniformLinkMap.get(entry.getKey()));
                     }
                 }
             }
@@ -308,6 +305,18 @@ public interface Renderable {
         private void setTextures(Texture[] textures) {
             this.textures = textures;
 
+            if (textures != null && textures.length > 0) {
+                for (int i = 0; i < textures.length - 1; i++) {
+                    for (int j = 0; j < textures.length - 1; j++) {
+                        if (textures[j].getTextureUnitIndex() > textures[j + 1].getTextureUnitIndex()) {
+                            Texture tmpTexture = textures[j];
+                            textures[j] = textures[j + 1];
+                            textures[j + 1] = tmpTexture;
+                        }
+                    }
+                }
+            }
+
             this._textureSet = true;
         }
 
@@ -340,7 +349,7 @@ public interface Renderable {
             //region textures binding
             if (textures != null && textures.length > 0) {
                 for (int i = 0; i < textures.length; i++) {
-                    GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + i);
+                    textures[i].activateCorrespondingTextureUnit();
                     textures[i].bind();
                 }
             }
@@ -370,26 +379,76 @@ public interface Renderable {
             mesh.getIndicesBuffer().bind();
             //endregion
 
-
             //region uniforms update
-            for (Map.Entry<Program.Uniform, UniformSetter> entry : uniformSetterMap.entrySet()) {
-                if (entry.getValue() instanceof TextureUniformSetter)
-                    ((TextureUniformSetter) entry.getValue()).resetCounter();
-            }
 
             for (Map.Entry<Program.Uniform, UniformSetter> entry : uniformSetterMap.entrySet()) {
                 Program.Uniform uniform = entry.getKey();
                 UniformSetter uniformSetter = entry.getValue();
 
-                if (uniformSetter.getHash() != uniformSetter.getLastUploadedHash()) {
-                    try {
-                        uniformSetter.set(uniform);
-                        uniformSetter.setLastUploadedHash(uniformSetter.getHash());
-                    } catch (InvalidOperationException e) {
-                        throw new RenderException(e.getMessage());
+
+                if (!(uniformSetter instanceof TextureUniformSetter)) {
+                    if (uniformSetter.getHash() != uniformSetter.getLastUploadedHash()) {
+                        try {
+                            uniformSetter.set(uniform);
+                            uniformSetter.setLastUploadedHash(uniformSetter.getHash());
+                        } catch (InvalidOperationException e) {
+                            throw new RenderException(e.getMessage());
+                        }
                     }
                 }
             }
+
+            int textureUniformSetterCount = 0;
+
+            for (Map.Entry<Program.Uniform, UniformSetter> entry : uniformSetterMap.entrySet()) {
+                Program.Uniform uniform = entry.getKey();
+                UniformSetter uniformSetter = entry.getValue();
+                if ((uniformSetter instanceof TextureUniformSetter))
+                    textureUniformSetterCount++;
+            }
+
+            Program.Uniform[] sortedTextureUniforms = new Program.Uniform[textureUniformSetterCount];
+
+            textureUniformSetterCount = 0;
+
+            for (Map.Entry<Program.Uniform, UniformSetter> entry : uniformSetterMap.entrySet()) {
+                Program.Uniform uniform = entry.getKey();
+                UniformSetter uniformSetter = entry.getValue();
+                if ((uniformSetter instanceof TextureUniformSetter)) {
+                    sortedTextureUniforms[textureUniformSetterCount] = uniform;
+                    textureUniformSetterCount++;
+                }
+            }
+
+            for (int i = 0; i < sortedTextureUniforms.length - 1; i++) {
+                for (int j = 0; j < sortedTextureUniforms.length - 1; j++) {
+                    if (sortedTextureUniforms[j].getApperanceOrder() > sortedTextureUniforms[j + 1].getApperanceOrder()) {
+                        Program.Uniform tmpUniform = sortedTextureUniforms[j];
+                        sortedTextureUniforms[j] = sortedTextureUniforms[j + 1];
+                        sortedTextureUniforms[j + 1] = tmpUniform;
+                    }
+                }
+            }
+
+            textureUniformSetterCount = 0;
+
+            for (Map.Entry<Program.Uniform, UniformSetter> entry : uniformSetterMap.entrySet()) {
+                Program.Uniform uniform = entry.getKey();
+                UniformSetter uniformSetter = entry.getValue();
+                if ((uniformSetter instanceof TextureUniformSetter)) {
+                    TextureUniformSetter textureUniformSetter = (TextureUniformSetter) uniformSetter;
+
+                    try {
+                        if (textureUniformSetterCount < textures.length)
+                            textureUniformSetter.setTextureUniform(sortedTextureUniforms[textureUniformSetterCount], textures[textureUniformSetterCount]);
+                    } catch (InvalidOperationException e) {
+                        throw new RenderException(e.getMessage());
+                    }
+
+                    textureUniformSetterCount++;
+                }
+            }
+
             //endregion
 
             //region drawing
@@ -423,11 +482,10 @@ public interface Renderable {
         }
 
         private abstract class TextureUniformSetter extends UniformSetter {
-            int textureCounter = 0;
-
-            void resetCounter() {
-                this.textureCounter = 0;
+            void set(Program.Uniform uniform) {
             }
+
+            abstract void setTextureUniform(Program.Uniform uniform, Texture texture) throws InvalidOperationException;
         }
         //endregion
     }

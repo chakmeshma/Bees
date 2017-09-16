@@ -261,6 +261,7 @@ public final class Program {
 
     private void inflateUniforms(String shaderSource) throws InitializationException {
         Matcher uniformMatcher = null;
+        int appearanceOrder = 0;
 
         Scanner scanner = new Scanner(shaderSource);
         while (scanner.hasNextLine()) {
@@ -285,7 +286,8 @@ public final class Program {
                 }
 
                 if (!duplicate) {
-                    uniforms.add(new Uniform(uniformTypeName, uniformName));
+                    uniforms.add(new Uniform(uniformTypeName, uniformName, appearanceOrder));
+                    appearanceOrder++;
                 }
             } else {
                 Matcher uniformGroupMatcher = shaderUniformGroupPattern.matcher(line);
@@ -308,7 +310,8 @@ public final class Program {
                         }
 
                         if (!duplicate) {
-                            uniforms.add(new Uniform(uniformTypeName, part));
+                            uniforms.add(new Uniform(uniformTypeName, part, appearanceOrder));
+                            appearanceOrder++;
                         }
                     }
                 }
@@ -450,9 +453,16 @@ public final class Program {
         private final Object valuesLock = new Object();
         private int _uniformLocation = -1;
         private Object[] values;
+        private int apperanceOrder;
 
-        Uniform(String typeName, String name) {
+        Uniform(String typeName, String name, int appearanceOrder) {
             super(typeName, name);
+
+            this.apperanceOrder = appearanceOrder;
+        }
+
+        synchronized int getApperanceOrder() {
+            return this.apperanceOrder;
         }
 
         synchronized void setUniformLocation(int id) {
