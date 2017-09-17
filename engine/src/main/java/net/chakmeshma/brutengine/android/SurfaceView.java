@@ -53,11 +53,11 @@ public class SurfaceView extends GLSurfaceView {
         scaleGestureDetector = new ScaleGestureDetector((Context) Engine.context, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
             @Override
             public boolean onScale(ScaleGestureDetector detector) {
-
-                float scaleFactor = detector.getScaleFactor() - 1;
-                scaleFactor *= SurfaceView.this.zoomSpeed;
-
-                renderer.getCamera().zoomCamera(-scaleFactor);
+//
+//                float scaleFactor = detector.getScaleFactor() - 1;
+//                scaleFactor *= SurfaceView.this.zoomSpeed;
+//
+//                renderer.getCamera().zoomCamera(-scaleFactor);
 
                 return true;
             }
@@ -90,7 +90,7 @@ public class SurfaceView extends GLSurfaceView {
                 switch (event.getPointerCount()) {
                     case 1:
                         if (vectorLength > 0.0f)
-                            renderer.getCamera().rotateCamera(dx * rotationSpeed, -dy * rotationSpeed); //reverse x y order if in landscape mode
+                            renderer.getCamera().rotateCamera(dx * rotationSpeed, dy * rotationSpeed); //reverse x y order if in landscape mode
                         break;
                     case 2:
 

@@ -376,6 +376,7 @@ public interface Renderable {
 
             }
 
+
             mesh.getIndicesBuffer().bind();
             //endregion
 

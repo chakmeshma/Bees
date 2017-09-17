@@ -84,7 +84,10 @@ public class Transform {
     }
 
     private synchronized void computeRotationMatrix() {
-        Matrix.setRotateEulerM(this.rotationMatrix, 0, this.eulerRotationX, this.eulerRotationY, this.eulerRotationZ);
+        Matrix.setIdentityM(this.rotationMatrix, 0);
+        Matrix.rotateM(this.rotationMatrix, 0, this.eulerRotationX, 1.0f, 0.0f, 0.0f);
+        Matrix.rotateM(this.rotationMatrix, 0, this.eulerRotationY, 0.0f, 1.0f, 0.0f);
+        Matrix.rotateM(this.rotationMatrix, 0, this.eulerRotationZ, 0.0f, 0.0f, 1.0f);
 
         Renderable.SimpleRenderable.lastUploadedCombinedRotationMatrixHash++;
     }
@@ -93,8 +96,8 @@ public class Transform {
         Matrix.translateM(this.modelMatrix, 0, MathUtilities.identityMatrix, 0, -this.pivotX, -this.pivotY, -this.pivotZ);
         Matrix.multiplyMM(this.modelMatrix, 0, this.scaleMatrix, 0, this.modelMatrix, 0);
         Matrix.multiplyMM(this.modelMatrix, 0, this.rotationMatrix, 0, this.modelMatrix, 0);
-        Matrix.translateM(this.modelMatrix, 0, this.modelMatrix, 0, this.pivotX, this.pivotY, this.pivotZ);
         Matrix.multiplyMM(this.modelMatrix, 0, this.translationMatrix, 0, this.modelMatrix, 0);
+        Matrix.translateM(this.modelMatrix, 0, this.modelMatrix, 0, this.pivotX, this.pivotY, this.pivotZ);
 
         calculateModelMatrixHash();
     }
