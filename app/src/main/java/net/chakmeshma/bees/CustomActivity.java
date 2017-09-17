@@ -413,37 +413,86 @@ public class CustomActivity extends AppCompatActivity implements GameActivity {
                 };
 
 //                Mesh hexahiveMesh = new Mesh(new Mesh.ObjFile("beehive.obj"), meshStepLoadListener);
-                Mesh sphereMarker = new Mesh(new Mesh.ObjFile("mesh.obj"), meshStepLoadListener);
+                Mesh wallMesh = new Mesh(new Mesh.ObjFile("mesh.obj"), meshStepLoadListener);
                 //endregion
 
                 //region texture setup
                 //endregion
 
-//                for (int i = 0; i < 1; i++) {
-//                    Random random = new Random(System.nanoTime());
-//
-//                    float x = (random.nextFloat() * 100.0f) - 50.0f;   /////////////////////
-//                    float y = (random.nextFloat() * 100.0f) - 50.0f;   ///VERTEILUNG VCTR///
-//                    float z = (random.nextFloat() * 100.0f) - 50.0f;   /////////////////////
-//
-//                    renderables.add(new Renderable.SimpleRenderable(phongProgram, sphereMarker, new Transform(
-//                            x, y, z,                     //////////////////
-//                            0.0f, 0.0f, 0.0f,            ///TRNSFRM MTRX///
-//                            0.0f, 0.0f, 0.0f),           //////////////////
-//                            texture,
-//                            theCamera));
-//                }
+                float cageSize = 2.0f;
 
-                renderables.add(new Renderable.SimpleRenderable(phongProgram, sphereMarker, new Transform(
-                        0.0f,
-                        0.0f,
-                        0.0f,
-                        0.0f,
-                        0.0f,
-                        0.0f,
-                        0.0f,
-                        0.0f,
-                        0.0f), new Texture[]{new Texture("BaseColor.jpg"), new Texture("Normal.jpg")}, theCamera));
+                renderables.add(
+                        new Renderable.SimpleRenderable(
+                                phongProgram,
+                                wallMesh,
+                                new Transform(
+                                        -1.0f * cageSize, 0.0f, 0.0f,
+                                        0.0f, 0.0f, 0.0f,
+                                        0.0f, 0.0f, 0.0f),
+                                new Texture[]{
+                                        new Texture("BaseColor.jpg"),
+                                        new Texture("Normal.jpg")},
+                                theCamera));
+                renderables.add(
+                        new Renderable.SimpleRenderable(
+                                phongProgram,
+                                wallMesh,
+                                new Transform(
+                                        1.0f * cageSize, 0.0f, 0.0f,
+                                        0.0f, 0.0f, 0.0f,
+                                        0.0f, 0.0f, 0.0f),
+                                new Texture[]{
+                                        new Texture("BaseColor.jpg"),
+                                        new Texture("Normal.jpg")},
+                                theCamera));
+                renderables.add(
+                        new Renderable.SimpleRenderable(
+                                phongProgram,
+                                wallMesh,
+                                new Transform(
+                                        0.0f, 1.0f * cageSize, 0.0f,
+                                        0.0f, 0.0f, 0.0f,
+                                        0.0f, 0.0f, 90.0f),
+                                new Texture[]{
+                                        new Texture("BaseColor.jpg"),
+                                        new Texture("Normal.jpg")},
+                                theCamera));
+                renderables.add(
+                        new Renderable.SimpleRenderable(
+                                phongProgram,
+                                wallMesh,
+                                new Transform(
+                                        0.0f, -1.0f * cageSize, 0.0f,
+                                        0.0f, 0.0f, 0.0f,
+                                        0.0f, 0.0f, 90.0f),
+                                new Texture[]{
+                                        new Texture("BaseColor.jpg"),
+                                        new Texture("Normal.jpg")},
+                                theCamera));
+                renderables.add(
+                        new Renderable.SimpleRenderable(
+                                phongProgram,
+                                wallMesh,
+                                new Transform(
+                                        0.0f, 0.0f, -1.0f * cageSize,
+                                        0.0f, 0.0f, 0.0f,
+                                        0.0f, 90.0f, 0.0f),
+                                new Texture[]{
+                                        new Texture("BaseColor.jpg"),
+                                        new Texture("Normal.jpg")},
+                                theCamera));
+                renderables.add(
+                        new Renderable.SimpleRenderable(
+                                phongProgram,
+                                wallMesh,
+                                new Transform(
+                                        0.0f, 0.0f, 1.0f * cageSize,
+                                        0.0f, 0.0f, 0.0f,
+                                        0.0f, 90.0f, 0.0f),
+                                new Texture[]{
+                                        new Texture("BaseColor.jpg"),
+                                        new Texture("Normal.jpg")},
+                                theCamera));
 
                 this.renderables = renderables;
             }

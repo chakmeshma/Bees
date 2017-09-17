@@ -116,6 +116,11 @@ public class Camera {
         this.rotationPitch += dPitch;   //beta
 //        this.rotationRoll += dRoll;     //gamma
 
+        if (this.rotationPitch > 89.0f)
+            this.rotationPitch = 89.0f;
+        else if (this.rotationPitch < -89.0f)
+            this.rotationPitch = -89.0f;
+
         computeViewRotationMatrix();
 
         computeViewMatrix();
@@ -123,7 +128,7 @@ public class Camera {
 
     private synchronized void computeViewRotationMatrix() {
         float A = this.rotationPitch;
-        float B = -this.rotationYaw;
+        float B = this.rotationYaw;
 //        float C = this.rotationRoll;
 
 //        viewRotationMatrix[0] = (float) (Math.cos(C) * Math.cos(B) - Math.sin(C) * Math.sin(A) * Math.sin(B));
@@ -150,8 +155,8 @@ public class Camera {
 
         Matrix.translateM(this.viewRotationMatrix, 0, this.focusPointX, this.focusPointY, this.focusPointZ);
 
-        Matrix.rotateM(this.viewRotationMatrix, 0, B, 0.0f, 1.0f, 0.0f);
         Matrix.rotateM(this.viewRotationMatrix, 0, A, 1.0f, 0.0f, 0.0f);
+        Matrix.rotateM(this.viewRotationMatrix, 0, B, 0.0f, 1.0f, 0.0f);
 
         Matrix.translateM(this.viewRotationMatrix, 0, -this.focusPointX, -this.focusPointY, -this.focusPointZ);
 
